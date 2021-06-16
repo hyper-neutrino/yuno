@@ -1,2 +1,2 @@
-# mtrix
-mtrix tacit golfing language
+# yuno
+yuno tacit golfing language
