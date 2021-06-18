@@ -4,10 +4,6 @@
   font-family: "Share Tech Mono", monospace;
 }
 
-data-session {
-  display: none;
-}
-
 html, body {
   margin: 0;
   padding: 0;

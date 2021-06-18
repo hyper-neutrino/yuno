@@ -18,7 +18,7 @@ function format() {
 var counter = 0;
 function add_argument(target, value) {
   counter++;
-  var field = $("<textarea class='args input'>");
+  var field = $("<textarea id='argitem" + counter + "' class='args input'>");
   if (value) {
     field.prop("value", value);
   }
@@ -38,7 +38,11 @@ function rm_argument(target) {
   $(target).remove();
 }
 
+last = {}
+
 function updateHeight(element) {
+  if (last[element.id] == element.value) return;
+  last[element.id] = element.value;
   element.style.height = "";
   element.style.height = element.scrollHeight + "px";
 }
