@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="yuno online interpreter" />
+    <meta name="keywords" content="hyper-neutrino, yuno, online, interpreter" />
+    <meta name="author" content="hyper-neutrino" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous"></script>
+    <script src="/static/script.js"></script>
+
+    <title>yuno interpreter</title>
+  </head>
+
+  <body>
+    <main>
+      <div class="container">
+        <br />
+        <h2>yuno online interpeter</h2>
+        <p><a href="https://github.com/hyper-neutrino/yuno">yuno</a> is a tacit golfing language inspired by APL and Jelly</p><br />
+
+        <br />
+        <b>Code</b>
+        <textarea id="code" class="input"></textarea>
+        <br /><br />
+
+        <b>STDIN</b>
+        <textarea id="stdin" class="input"></textarea>
+        <br /><br />
+
+        <b>Command Line Arguments (newline-separated)</b><br /><br />
+        <span id="base" onclick="add_argument('#base')" class="addbutton">+ add</span>
+        <br /><br />
+
+        <button id="run">
+          RUN
+        </button>
+        <button id="link">
+          LINK &amp; FORMAT SE MD
+        </button>
+        <button id="inline">
+          LINK &amp; FORMAT INLINE MD
+        </button>
+        <br /><br /><br />
+
+        <b id="outlabel">Stack Exchange post format</b>
+        <textarea id="output" class="input wrap" readonly></textarea>
+        <br /><br />
+
+        <b>STDERR</b>
+        <textarea id="stderr" class="input wrap" readonly></textarea>
+      </div>
+    </main>
+
+    <footer>
+      <div class="container">
+        &copy;&nbsp;2021 Alexander Liao - MIT License - <a href="https://github.com/hyper-neutrino/yuno">Source Code</a>
+      </div>
+    </footer>
+  </body>
+</html>
