@@ -21,9 +21,44 @@ var print;
 
 let fail = x => { throw x; }
 
+let N = f => (f => (x, y) => {
+  if (typeof x == "bigint" && typeof y == "number") {
+    try {
+      y = BigInt(y);
+    } catch {
+      x = Number(x);
+    }
+  }
+
+  if (typeof x == "number" && typeof y == "bigint") {
+    try {
+      x = BigInt(x);
+    } catch {
+      y = Number(y);
+    }
+  }
+
+  return f(x, y);
+})(OP(f));
+
+let OP = x => eval("(a, b) => a " + x + " b");
+
+let ADD = N("+");
+let SUB = N("-");
+let MUL = N("*");
+let DIV = N("/");
+let EXP = N("**");
+
+let GT = N(">");
+let LT = N("<");
+let GE = N(">=");
+let LE = N("<=");
+let EQ = N("==");
+let NE = N("!=");
+
 let _square = x => ({
   "type": "number",
-  "value": [x.value[0] ** 2 - x.value[1] ** 2, 2 * x.value[0] * x.value[1]]
+  "value": [SUB(EXP(x.value[0], 2), EXP(x.value[1], 2)), MUL(MUL(x.value[0], x.value[1]), 2)]
 });
 
 let _format_square = x => {
@@ -39,33 +74,39 @@ let _format_square = x => {
 
 let _add = (x, y) => ({
   "type": "number",
-  "value": [x.value[0] + y.value[0], x.value[1] + y.value[1]]
+  "value": [ADD(x.value[0], y.value[0]), ADD(x.value[1], y.value[1])]
 });
 
 let _sub = (x, y) => ({
   "type": "number",
-  "value": [x.value[0] - y.value[0], x.value[1] - y.value[1]]
+  "value": [SUB(x.value[0], y.value[0]), SUB(x.value[1], y.value[1])]
 });
 
 let _mul = (x, y) => ({
   "type": "number",
-  "value": [x.value[0] * y.value[0] - x.value[1] * y.value[1], x.value[0] * y.value[1] + x.value[1] * y.value[0]]
+  "value": [SUB(MUL(x.value[0], y.value[0]), MUL(x.value[1], y.value[1])), ADD(MUL(x.value[0], y.value[1]), MUL(x.value[1], y.value[0]))]
 });
 
 let _div = (x, y) => ({
   "type": "number",
   "value": y.value[0] == 0 && y.value[1] == 0 ?
     x.value[0] == 0 && x.value[1] == 0 ?
-      [1, 0]
+      [1n, 0n]
     : x.value[0] > 0 ?
-        [Infinity, 0]
+        [Infinity, 0n]
       : x.value[0] < 0 ?
-          [-Infinity, 0]
+          [-Infinity, 0n]
         : x.value[1] > 0 ?
-            [0, Infinity]
-          : [0, -Infinity]
-    : [(x.value[0] * y.value[0] + x.value[1] * y.value[1]) / (y.value[0] ** 2 - y.value[1] ** 2), (x.value[1] * y.value[0] - x.value[0] * y.value[1]) / (y.value[0] ** 2 - y.value[1] ** 2)]
+            [0n, Infinity]
+          : [0n, -Infinity]
+    : [
+        DIV(ADD(MUL(x.value[0], y.value[0]), MUL(x.value[1], y.value[1])), (SUB(EXP(y.value[0], 2), EXP(y.value[1], 2)))),
+        DIV(SUB(MUL(x.value[1], y.value[0]), MUL(x.value[0], y.value[1])), SUB(EXP(y.value[0], 2), EXP(y.value[1], 2)))
+      ]
 });
+
+let floor = x => Math.floor(Number(x));
+let ceil = x => Math.ceil(Number(x));
 
 let _neg = x => ({
   "type": "number",
@@ -74,14 +115,14 @@ let _neg = x => ({
 
 let _cpshift = (x, y) => ({
   "type": "character",
-  "value": codepage[modulo(codepage.indexOf(x.value) + y.value[0], 256)]
+  "value": codepage[modulo(codepage.indexOf(x.value) + floor(y.value[0]), 256)]
 });
 
-let _padleft = (x, y) => yunoify(" ".repeat(Math.max(0, y.value[0] - x.length)) + to_real_str(x));
+let _padleft = (x, y) => yunoify(" ".repeat(Math.max(0, floor(y.value[0])) - x.length) + to_real_str(x));
 
-let _padright = (x, y) => yunoify(to_real_str(x) + " ".repeat(Math.max(0, y.value[0] - x.length)));
+let _padright = (x, y) => yunoify(to_real_str(x) + " ".repeat(Math.max(0, floor(y.value[0]) - x.length)));
 
-let _multiline_divide = (x, y, z = y.value[0]) => z ? yunoify(to_real_str(x).split("\n").map(a => {
+let _multiline_divide = (x, y, z = floor(y.value[0])) => z ? yunoify(to_real_str(x).split("\n").map(a => {
   var ret = [];
   for (var i = 0; i < a.length; i += z) {
     ret.push(a.substring(i, i + z));
@@ -92,14 +133,14 @@ let _multiline_divide = (x, y, z = y.value[0]) => z ? yunoify(to_real_str(x).spl
 let _range = (x, type) => {
   x = x.value || x;
   if (x[1] == 0) {
-    if (x[0] == Infinity) return _inf_range(type == "lower" || type == "outer" ? 0 : 1);
-    if (x[0] == -Infinity) return _neg_inf_range(type == "upper" || type == "outer" ? 0 : -1);
-    if (x[0] >= 1) return yunoify(range(type == "lower" || type == "outer" ? 0 : 1, x[0] + (type == "upper" || type == "outer" ? 1 : 0), 1));
-    return yunoify(range(type == "lower" || type == "inner" ? -1 : 0, x[0] + (type == "lower" || type == "outer" ? -1 : 0), -1));
+    if (x[0] == Infinity) return _inf_range(type == "lower" || type == "outer" ? 0n : 1n);
+    if (x[0] == -Infinity) return _neg_inf_range(type == "upper" || type == "outer" ? 0n : -1n);
+    if (x[0] >= 1) return yunoify(range(type == "lower" || type == "outer" ? 0n : 1n, BigInt(floor(x[0])) + (type == "upper" || type == "outer" ? 1n : 0n), 1n));
+    return yunoify(range(type == "lower" || type == "inner" ? -1n : 0n, BigInt(floor(x[0])) + (type == "lower" || type == "outer" ? -1n : 0n), -1n));
   } else if (x[0] == 0) {
     return _map(_swap_re_im, _range([x[1], x[0]], type));
   } else {
-    return _cartesian_product(_range([x[0], 0], type), _range([0, x[1]], type), _add);
+    return _cartesian_product(_range([x[0], 0n], type), _range([0n, x[1]], type), _add);
   }
 };
 
@@ -117,12 +158,12 @@ let _char_range = (x, y) => {
 
 let _inf_range = start => ({
   "type": "sequence",
-  "call": x => yunoify(x + start - 1)
+  "call": x => yunoify(ADD(x, SUB(start, 1)))
 });
 
 let _neg_inf_range = start => ({
   "type": "sequence",
-  "call": x => yunoify(start - x + 1)
+  "call": x => yunoify(SUB(start, ADD(x, 1)))
 });
 
 let _swap_re_im = x => ({
@@ -150,7 +191,7 @@ function range(start, end, step) {
   if (end === undefined && step === undefined) { end = start; start = 0; step = 1; }
   if (step === undefined) { step = end > start ? 1 : -1; }
   var ret = [];
-  for (var x = start; end > start ? x < end : x > end; x += step) {
+  for (var x = start; GT(end, start) ? LT(x, end) : GT(x, end); x = ADD(x, step)) {
     ret.push(x);
   }
   return ret;
@@ -290,8 +331,7 @@ let indexmod = (x, y) => modulo(x - 1, y) + 1;
 function from_base(x, b) {
   var v = 0;
   for (var k of x) {
-    v *= b;
-    v += k;
+    v = ADD(MUL(v, b), k);
   }
   return v;
 }
@@ -439,12 +479,14 @@ function yunoify(x, deep = true) {
 
   if (x.type) return x;
 
+  if (typeof x == "number") try { x = BigInt(x); } catch {}
+
   if (typeof x == "string") {
     return list_to_func([...x].map(ynchar));
-  } else if (typeof x == "number") {
+  } else if (typeof x == "number" || typeof x == "bigint") {
     return {
       "type": "number",
-      "value": [x, 0]
+      "value": [x, 0n]
     };
   } else if (Array.isArray(x)) {
     return list_to_func(x.map(x => yunoify(x, deep)));
@@ -456,7 +498,7 @@ function tryeval(x) {
   try {
     C = (x, y) => ({
       "type": "number",
-      "value": y === undefined ? [0, x] : [x, y]
+      "value": y === undefined ? [0n, x] : [x, y]
     });
     return yunoify(eval(x));
   } catch {
@@ -496,7 +538,7 @@ function parse_number(x) {
     var a = x.split(".");
     return [parseFloat((a[0] == "" ? "0" : a[0]) + "." + (a[1] == "" ? "5" : a[1])), 0];
   } else {
-    return [parseInt(x), 0];
+    return [BigInt(x), 0];
   }
 }
 
@@ -908,7 +950,7 @@ function execute(code, args, input, print_func, error, flags = {}) {
   settings = flags;
   print = print_func;
   args = args.map(tryeval);
-  var defaults = [yunoify(16), yunoify(100), yunoify(10), yunoify(64), yunoify(256), ynchar("\n"), ynchar(" ")];
+  var defaults = [yunoify(16n), yunoify(100n), yunoify(10n), yunoify(64n), yunoify(256n), ynchar("\n"), ynchar(" ")];
   for (var index = 0; index < 7; index++) {
     verbs["³⁴⁵⁶⁷⁸⁹"[index]].call = (x => () => x)(index < args.length && index < 5 ? args[index] : defaults[index]);
   }
