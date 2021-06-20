@@ -1,7 +1,15 @@
 codepage  = "ΓΔΘΞΠΣΦΨΩαβγδεζηθικλμξπρςστυφχψω !\"#$%&'()*+,-./0123456789:;<=>?"
-codepage += "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~\n"
+codepage += "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\n"
 codepage += "äæçðøħŋœǂɐɒɓɔɕɖɗɘɛɜɞɟɠɣɤɥɦɧɨɫɬɭɮɯɰɱɲɳɵɶɹɻɽɾʁʂʃʄʈʉʊʋʌʎʐʑʒʔʛʝʞʡʢˌᶑ"
-codepage += "‖ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘǫʀᴛᴜᴠᴡʏᴢ‼°¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼×÷¬ϨϩϪϫϮϯϰϱϷϸϻϼϾϿ┝┥«»‘’“”"
+codepage += "‖ᴀʙᴅᴇғɢʜɪᴊᴋʟᴍɴᴘǫʀᴛʏԻԸԹիըթ‼°¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼×÷¬ϨϩϪϫϮϯϰϱϷϸϻϼϾϿ┝┥«»‘’“”"
+
+let linkref = (arity, offset) => ({
+  "condition": x => true,
+  "call": (links, outers, index) => ({
+    "arity": arity,
+    "call": (x, y) => evaluate(outers[modulo(index + offset, outers.length)], arity, x, y)
+  })
+});
 
 let hyper = x => x.length == 1;
 
@@ -9,10 +17,12 @@ var settings = {
 
 };
 
+var print;
+
 verbs = {
   ",": {
     "arity": 2,
-    "call": (x, y) => list_to_func([x, y])
+    "call": vectorized((x, y) => list_to_func([x, y]))
   }
 }
 
@@ -23,10 +33,127 @@ adverbs = {
       "arity": 2,
       "call": (x, y) => links[0].call(y, x)
     })
+  },
+  "Ի": linkref(0, -1),
+  "Ը": linkref(1, -1),
+  "Թ": linkref(2, -1),
+  "ɨ": linkref(0, 0),
+  "ɫ": linkref(1, 0),
+  "ɬ": linkref(2, 0),
+  "ի": linkref(0, 1),
+  "ը": linkref(1, 1),
+  "թ": linkref(2, 1)
+}
+
+let depth = x => x.type == "sequence" ? (x.length === undefined || x.length == 0 ? 1 : minimum(func_to_list(x).map(x => depth(x))) + 1) : 0;
+let minimum = x => Math.min.apply(null, x);
+let modulo = (x, y) => x % y + (x < 0 ? y : 0);
+let indexmod = (x, y) => modulo(x - 1, y) + 1;
+
+function elvis(x, y) {
+  return x === undefined ? y : x;
+}
+
+function vectorized(call, config) {
+  return (left, right) => vectorize(call, left, right, config);
+}
+
+/*
+vectorization strategies:
+
+[1, 2] + [3, 4, 5]:
+default: [1 + 3, 2 + 4, 5]
+cut: [1 + 3, 2 + 4]
+wrap: [1 + 3, 2 + 4, 1 + 5]
+
+these don't apply when one side is not vectorized
+*/
+function vectorize(call, left, right, config) {
+  config = elvis(config, {});
+
+  var maxdepth = elvis(config.maxdepth, -1);
+  var invdepth = elvis(config.invdepth, -1);
+  var strategy = elvis(elvis(config.strategy, settings.vectorization_strategy), "default");
+  var dostring = elvis(config.dostring, true);
+
+  var should_vectorize = x => x && x.type == "sequence" && (dostring || !is_string(x)) && maxdepth != 0 && depth(x) > invdepth;
+
+  var do_left = should_vectorize(left);
+  var do_right = should_vectorize(right);
+
+  var new_config = clone(config); new_config.maxdepth = maxdepth - 1;
+
+  if (do_left) {
+    if (do_right) {
+      if (strategy == "default") {
+        return ((x, y, call, config, length = x.length === undefined || y.length === undefined ? undefined : Math.max(x.length, y.length)) => ({
+          "type": "sequence",
+          "call": index => {
+            if (length === undefined) {
+              var l = x.length === undefined || 0 < index && index <= x.length ? x.call(index) : undefined;
+              var r = y.length === undefined || 0 < index && index <= y.length ? y.call(index) : undefined;
+              if (l === undefined) return r;
+              if (r === undefined) return l;
+              return vectorize(call, l, r, config);
+            } else {
+              index = indexmod(index, length);
+              var l = index <= x.length ? x.call(index) : undefined;
+              var r = index <= y.length ? y.call(index) : undefined;
+              if (l === undefined) return r;
+              if (r === undefined) return l;
+              return vectorize(call, l, r, config);
+            }
+          },
+          "length": length
+        }))(left, right, call, new_config);
+      } else if (strategy == "cut") {
+        return ((x, y, call, config, length = x.length === undefined ? y.length === undefined ? undefined : y.length : y.length === undefined ? x.length : Math.min(x.length, y.length)) => ({
+          "type": "sequence",
+          "call": index => {
+            if (length !== undefined) index = indexmod(index, length);
+            return vectorize(call, x.call(index), y.call(index), config);
+          },
+          "length": length
+        }))(left, right, call, new_config);
+      } else if (strategy == "wrap") {
+        return ((x, y, call, config, length = x.length === undefined || y.length === undefined ? undefined : Math.max(x.length, y.length)) => ({
+          "type": "sequence",
+          "call": index => {
+            if (length !== undefined) index = indexmod(index, length);
+            return vectorize(call, x.call(index), y.call(index), config);
+          },
+          "length": length
+        }))(left, right, call, new_config);
+      } else {
+        throw "unknown vectorization strategy \"" + strategy + "\"";
+      }
+    } else {
+      return ((x, y, call, config) => ({
+        "type": "sequence",
+        "call": index => vectorize(call, x.call(index), y, config),
+        "length": x.length
+      }))(left, right, call, new_config);
+    }
+  } else {
+    if (do_right) {
+      return ((x, y, call, config) => ({
+        "type": "sequence",
+        "call": index => vectorize(call, x, y.call(index), config),
+        "length": y.length
+      }))(left, right, call, new_config);
+    } else {
+      return call(left, right);
+    }
   }
 }
 
-let modulo = (x, y) => x % y + (x < 0 ? y : 0);
+function clone(a) {
+  var copy = {};
+  for (var key in a) {
+    copy[key] = a[key];
+  }
+  return copy;
+}
 
 function list_to_func(x) {
   return {
@@ -277,7 +404,7 @@ function tokenize(code) {
   return lines.map(line => strand(line));
 }
 
-function parse(chains, print) {
+function parse(chains) {
   var links = chains.map(x => []);
   for (var outerindex = 0; outerindex < chains.length; outerindex++) {
     var chain = chains[outerindex];
@@ -316,13 +443,13 @@ function parse(chains, print) {
           stack.push({
             "type": "verb",
             "arity": arity,
-            "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y, print))(parse(inner), arity)
+            "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y))(parse(inner), arity)
           });
         } else {
           stack.push({
             "type": "verb",
             "arity": chain[index].arity,
-            "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y, print))(parse(stack.splice(0, stack.length)), chain[index].arity)
+            "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y))(parse(stack.splice(0, stack.length)), chain[index].arity)
           });
         }
       } else {
@@ -338,7 +465,7 @@ function isLCC(chain) {
   if (chain.length == 0) return false;
   if (chain[0].arity != 0) return false;
   chain = chain.slice(1);
-  while (chain) {
+  while (chain.length) {
     if (chain[0].arity == 1) {
       chain = chain.slice(1);
     } else if (chain.length >= 2 && chain[0].arity + chain[1].arity == 2) {
@@ -350,25 +477,25 @@ function isLCC(chain) {
   return true;
 }
 
-function yuno_output(val, print, end = "") {
+function yuno_output(val, end = "") {
   if (is_string(val)) {
     func_to_list(val).forEach(x => print(x.value));
   } else if (val.type == "sequence") {
     if (val.length == 1 && !settings.forcelist) {
-      yuno_output(val.call(1), print);
+      yuno_output(val.call(1));
     } else if (val.length === undefined) {
       print("[");
       for (var index = 1; ; index++) {
-        yuno_output(val.call(index), print);
+        yuno_output(val.call(index));
       }
     } else {
       print("[");
       for (var index = 1; index < val.length; index++) {
-        yuno_output(val.call(index), print);
+        yuno_output(val.call(index));
         print(", ");
       }
       if (val.length > 0) {
-        yuno_output(val.call(val.length), print);
+        yuno_output(val.call(val.length));
       }
       print("]");
     }
@@ -386,7 +513,7 @@ function yuno_output(val, print, end = "") {
   print(end);
 }
 
-function evaluate(chain, arity, x, y, print) {
+function evaluate(chain, arity, x, y) {
   chain = chain.slice();
   var value;
 
@@ -482,8 +609,9 @@ function evaluate(chain, arity, x, y, print) {
   }
 }
 
-function execute(code, args, input, print, error, flags = {}) {
+function execute(code, args, input, print_func, error, flags = {}) {
   settings = flags;
+  print = print_func;
   args = args.map(tryeval);
   filtered = "";
   for (var char of code) {
@@ -497,8 +625,8 @@ function execute(code, args, input, print, error, flags = {}) {
   try {
     var chains = tokenize(filtered);
     var parsed = parse(chains);
-    var result = evaluate(last(parsed), Math.min(args.length, 2), args[0], args[1], print);
-    yuno_output(result, print);
+    var result = evaluate(last(parsed), Math.min(args.length, 2), args[0], args[1]);
+    yuno_output(result);
   } catch (e) {
     error(e.toString());
     throw e;
