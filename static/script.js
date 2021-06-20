@@ -1,9 +1,9 @@
 function encode(obj) {
-  return btoa(JSON.stringify(obj));
+  return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
 }
 
 function decode(str) {
-  return JSON.parse(atob(str));
+  return JSON.parse(decodeURIComponent(escape(atob(str))));
 }
 
 function url() {
@@ -13,6 +13,20 @@ function url() {
 
 function format() {
   return "# [yuno], " + code.value.length + " byte" + (code.value.length == 1 ? "" : "s") + "\n\n```\n" + code.value + "\n```\n\n[Try it online!](" + document.location + " \"yuno online interpreter\")\n\n[yuno]: https://github.com/hyper-neutrino/yuno";
+}
+
+function execute_code() {
+  outlabel.innerHTML = "STDOUT";
+  var input = prompt;
+  if (!$("#promptinstead").is(":checked")) {
+    var lines = stdin.value.split("\n");
+    lines.reverse();
+    input = (a => () => a.pop())(lines);
+  }
+  output.value = "";
+  stderr.value = "";
+  execute(code.value, [...$(".argbox>textarea")].map(x => x.value), input, x => output.value += x, x => stderr.value += x);
+  updateHeight(output);
 }
 
 var counter = 0;
@@ -38,11 +52,11 @@ function rm_argument(target) {
   $(target).remove();
 }
 
-last = {}
+updatehistory = {}
 
 function updateHeight(element) {
-  if (last[element.id] == element.value) return;
-  last[element.id] = element.value;
+  if (updatehistory[element.id] == element.value) return;
+  updatehistory[element.id] = element.value;
   element.style.height = "";
   element.style.height = element.scrollHeight + "px";
 }
@@ -74,14 +88,13 @@ $(document).ready(e => {
 
   $(document).on("keydown", e => {
     if (e.ctrlKey && e.keyCode == 13) {
-      do_run();
+      e.preventDefault();
+      execute_code();
     }
   });
 
   $("#run").on("click", e => {
-    outlabel.innerHTML = "STDOUT";
-    output.value = "Running code `" + code.value + "`";
-    updateHeight(output);
+    execute_code();
   })
 
   $("#link").on("click", e => {

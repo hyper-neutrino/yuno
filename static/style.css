@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
+@font-face {
+  font-family: "DejaVu Sans Mono";
+  src: url("/static/DejaVuSansMono.ttf");
+}
+
 * {
   font-family: "Share Tech Mono", monospace;
 }
@@ -34,6 +39,7 @@ a {
 }
 
 .input {
+  font-family: "DejaVu Sans Mono", monospace;
   border: none;
   outline: none;
   resize: none;
