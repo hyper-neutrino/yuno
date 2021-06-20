@@ -19,10 +19,117 @@ var settings = {
 
 var print;
 
+let fail = x => { throw x; }
+
+let _square = x => ({
+  "type": "number",
+  "value": [x.value[0] ** 2 - x.value[1] ** 2, 2 * x.value[0] * x.value[1]]
+});
+
+let _format_square = x => {
+  x = to_real_str(x);
+  var result = [];
+  var length = Math.ceil(Math.sqrt(x.length));
+  x += " ".repeat(length ** 2 - x.length);
+  for (var i = 0; i < length; i++) {
+    result.push(x.substr(i * length, i * length + length));
+  }
+  return yunoify(result);
+}
+
+let _add = (x, y) => ({
+  "type": "number",
+  "value": [x.value[0] + y.value[0], x.value[1] + y.value[1]]
+});
+
+let _sub = (x, y) => ({
+  "type": "number",
+  "value": [x.value[0] - y.value[0], x.value[1] - y.value[1]]
+});
+
+let _mul = (x, y) => ({
+  "type": "number",
+  "value": [x.value[0] * y.value[0] - x.value[1] * y.value[1], x.value[0] * y.value[1] + x.value[1] * y.value[0]]
+});
+
+let _neg = x => ({
+  "type": "number",
+  "value": [-x.value[0], -x.value[1]]
+});
+
+let _cpshift = (x, y) => ({
+  "type": "character",
+  "value": codepage[modulo(codepage.indexOf(x.value) + y.value[0], 256)]
+});
+
+let _padleft = (x, y) => yunoify(" ".repeat(Math.max(0, y.value[0] - x.length)) + to_real_str(x));
+
+let _padright = (x, y) => yunoify(to_real_str(x) + " ".repeat(Math.max(0, y.value[0] - x.length)));
+
 verbs = {
+  "+": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? _add(x, y) : yunoify(unparse_number(x) + to_real_str(y)))
+    : (y.type == "number" ? yunoify(to_real_str(x) + unparse_number(y)) : yunoify(to_real_str(x) + to_real_str(y))), {
+      "dostring": false
+    })
+  },
   ",": {
     "arity": 2,
-    "call": vectorized((x, y) => list_to_func([x, y]))
+    "call": (x, y) => list_to_func([x, y])
+  },
+  "_": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? _sub(x, y) : _cpshift(y, x))
+    : (y.type == "number" ? _cpshift(x, _neg(y)) : fail("`_` not implemented on chr, chr")))
+  },
+  "¹": {
+    "arity": 1,
+    "call": x => x
+  },
+  "²": {
+    "arity": 1,
+    "call": vectorized(x => is_string(x) ? _format_square(x) : _square(x), {
+      "dostring": false
+    })
+  },
+  "³": {
+    "arity": 0,
+    "call": () => 0
+  },
+  "⁴": {
+    "arity": 0,
+    "call": () => 0
+  },
+  "⁵": {
+    "arity": 0,
+    "call": () => 0
+  },
+  "⁶": {
+    "arity": 0,
+    "call": () => 0
+  },
+  "⁷": {
+    "arity": 0,
+    "call": () => 0
+  },
+  "⁸": {
+    "arity": 0,
+    "call": () => 0
+  },
+  "⁹": {
+    "arity": 0,
+    "call": () => 0
+  },
+  "×": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? _mul(x, y) : _padleft(y, x))
+    : (y.type == "number" ? _padright(x, y) : yunoify([...to_real_str(x)].map(a => a + to_real_str(y)))), {
+      "dostring": false
+    })
   }
 }
 
@@ -49,6 +156,15 @@ let depth = x => x.type == "sequence" ? (x.length === undefined || x.length == 0
 let minimum = x => Math.min.apply(null, x);
 let modulo = (x, y) => x % y + (x < 0 ? y : 0);
 let indexmod = (x, y) => modulo(x - 1, y) + 1;
+
+function from_base(x, b) {
+  var v = 0;
+  for (var k of x) {
+    v *= b;
+    v += k;
+  }
+  return v;
+}
 
 function elvis(x, y) {
   return x === undefined ? y : x;
@@ -171,18 +287,28 @@ function func_to_list(x) {
   return list;
 }
 
+function to_real_str(x) {
+  if (x.type == "character") return x.value;
+  if (x.type == "number") return unparse(x);
+  return func_to_list(x).map(x => x.value).join("");
+}
+
 function is_string(x) {
   return x.type == "sequence" && x.length !== undefined && func_to_list(x).every(x => x.type == "character");
+}
+
+function ynchar(x) {
+  return {
+    "type": "character",
+    "value": x
+  };
 }
 
 function yunoify(x, deep = true) {
   if (!Array.isArray(x) && !deep) return x;
 
   if (typeof x == "string") {
-    return list_to_func([...x].map(x => ({
-      "type": "character",
-      "value": x
-    })));
+    return list_to_func([...x].map(ynchar));
   } else if (typeof x == "number") {
     return {
       "type": "number",
@@ -202,17 +328,34 @@ function tryeval(x) {
   }
 }
 
+function unparse_number(x) {
+  x = x.value;
+  if (x[1] == 0) {
+    return x[0].toString();
+  } else {
+    if (x[0] == 0) {
+      return x[1].toString() + "ɪ";
+    } else {
+      return x[0].toString() + "+" + x[1].toString() + "ɪ";
+    }
+  }
+}
+
 function parse_number(x) {
   if (x == "") {
     return 0;
   } else if (x.indexOf("ɪ") != -1) {
     var a = x.split("ɪ");
+    a[0] = a[0] || "0";
+    a[1] = a[1] || "1";
     return a.map(x => parse_number(x)[0]);
   } else if (x.indexOf("ᴊ") != -1) {
     var a = x.split("ᴊ");
+    a[0] = a[0] || "1";
+    a[1] = a[1] || "3";
     return [parse_number(a[0])[0] * 10 ** parse_number(a[1])[0], 0];
   } else if (x[0] == "-") {
-    return [-parse_number(x.substring(1))[0], 0];
+    return [-parse_number(x.substring(1) || "1")[0], 0];
   } else if (x.indexOf(".") != -1) {
     var a = x.split(".");
     return [parseFloat((a[0] == "" ? "0" : a[0]) + "." + (a[1] == "" ? "5" : a[1])), 0];
@@ -272,7 +415,7 @@ function collapse(lits, force = false) {
           index++;
         }
       }
-      vals.push(collapse(list));
+      vals.push(collapse(list, true));
     } else {
       vals.push(lits[index]);
     }
@@ -334,8 +477,9 @@ function tokenize(code) {
           break;
         } else if (code[index] == "‘") {
           literal = literal.map(x => [...x].map(x => codepage.indexOf(x)));
+          break;
         } else if (code[index] == "’") {
-          literal = ["TODO - base 250 number"];
+          literal = literal.map(x => from_base([...x].map(x => codepage.indexOf(x)), 250));
           break;
         } else {
           literal[literal.length - 1] += code[index];
@@ -404,59 +548,64 @@ function tokenize(code) {
   return lines.map(line => strand(line));
 }
 
+function parse_chain(chain, chains, links, outerindex, stack) {
+  var stack = stack || links[outerindex];
+  for (var index = 0; index < chain.length; index++) {
+    if (chain[index].type == "verb") {
+      stack.push(chain[index].value);
+    } else if (chain[index].type == "adverb") {
+      var adverb = chain[index].value;
+      var inner = [];
+      while (stack.length && !adverb.condition(inner)) {
+        inner.splice(0, 0, stack.pop());
+      }
+      if (adverb.condition(inner)) {
+        stack.push(adverb.call(inner, links, outerindex));
+      } else if (chain[index].fail) {
+        stack.push(adverb.fail(inner, links, outerindex));
+      } else {
+        throw "adverb failed to meet its condition and does not have a default behavior: `" + chain[index].name + "`";
+      }
+    } else if (chain[index].type == "bracket") {
+      if (chain[index].open) {
+        var arity = chain[index].arity;
+        index++;
+        var bal = 1;
+        var inner = [];
+        while (bal && index < chain.length) {
+          if (chain[index].type == "bracket" && chain[index].arity == arity) {
+            bal += chain[index].open ? 1 : -1;
+          }
+          if (bal) {
+            inner.push(chain[index]);
+            index++;
+          }
+        }
+        stack.push({
+          "type": "verb",
+          "arity": arity,
+          "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y))(parse_chain(inner, chains, links, outerindex, []), arity)
+        });
+      } else {
+        stack.push({
+          "type": "verb",
+          "arity": chain[index].arity,
+          "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y))(parse_chain(stack.splice(0, stack.length), chains, links, outerindex, []), chain[index].arity)
+        });
+      }
+    } else {
+      console.log(chain[index]);
+      throw "unidentified item when parsing the chain; check the console";
+    }
+  }
+  return stack;
+}
+
 function parse(chains) {
   var links = chains.map(x => []);
   for (var outerindex = 0; outerindex < chains.length; outerindex++) {
     var chain = chains[outerindex];
-    var stack = links[outerindex];
-    for (var index = 0; index < chain.length; index++) {
-      if (chain[index].type == "verb") {
-        stack.push(chain[index].value);
-      } else if (chain[index].type == "adverb") {
-        var adverb = chain[index].value;
-        var inner = [];
-        while (stack.length && !adverb.condition(inner)) {
-          inner.splice(0, 0, stack.pop());
-        }
-        if (adverb.condition(inner)) {
-          stack.push(adverb.call(inner, links, outerindex));
-        } else if (chain[index].fail) {
-          stack.push(adverb.fail(inner, links, outerindex));
-        } else {
-          throw "adverb failed to meet its condition and does not have a default behavior: `" + chain[index].name + "`";
-        }
-      } else if (chain[index].type == "bracket") {
-        if (chain[index].open) {
-          var arity = chain[index].arity;
-          index++;
-          var bal = 1;
-          var inner = [];
-          while (bal && index < chain.length) {
-            if (chain[index].type == "bracket" && chain[index].arity == arity) {
-              bal += chain[index].open ? 1 : -1;
-            }
-            if (bal) {
-              inner.push(chain[index]);
-              index++;
-            }
-          }
-          stack.push({
-            "type": "verb",
-            "arity": arity,
-            "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y))(parse(inner), arity)
-          });
-        } else {
-          stack.push({
-            "type": "verb",
-            "arity": chain[index].arity,
-            "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y))(parse(stack.splice(0, stack.length)), chain[index].arity)
-          });
-        }
-      } else {
-        console.log(chain[index]);
-        throw "unidentified item when parsing the chain; check the console";
-      }
-    }
+    parse_chain(chain, chains, links, outerindex);
   }
   return links;
 }
@@ -477,25 +626,29 @@ function isLCC(chain) {
   return true;
 }
 
-function yuno_output(val, end = "") {
+function yuno_output(val, end = "", force = false) {
   if (is_string(val)) {
-    func_to_list(val).forEach(x => print(x.value));
+    if (force) {
+      print(JSON.stringify(to_real_str(val)));
+    } else {
+      print(to_real_str(val));
+    }
   } else if (val.type == "sequence") {
-    if (val.length == 1 && !settings.forcelist) {
-      yuno_output(val.call(1));
+    if (val.length == 1 && !settings.forcelist && !force) {
+      yuno_output(val.call(1), end, force);
     } else if (val.length === undefined) {
       print("[");
       for (var index = 1; ; index++) {
-        yuno_output(val.call(index));
+        yuno_output(val.call(index), end, true);
       }
     } else {
       print("[");
       for (var index = 1; index < val.length; index++) {
-        yuno_output(val.call(index));
+        yuno_output(val.call(index), end, true);
         print(", ");
       }
       if (val.length > 0) {
-        yuno_output(val.call(val.length));
+        yuno_output(val.call(val.length), end, true);
       }
       print("]");
     }
@@ -569,7 +722,7 @@ function evaluate(chain, arity, x, y) {
     if (chain.length >= 3 && chain[0].arity == 2 && chain[1].arity == 2 && chain[2].arity == 2) {
       value = chain.shift().call(x, y);
     } else if (isLCC(chain)) {
-      value = chain.shift.call();
+      value = chain.shift().call();
     } else {
       value = x;
     }
@@ -613,6 +766,10 @@ function execute(code, args, input, print_func, error, flags = {}) {
   settings = flags;
   print = print_func;
   args = args.map(tryeval);
+  var defaults = [yunoify(16), yunoify(100), yunoify(10), yunoify(64), yunoify(256), ynchar("\n"), ynchar(" ")];
+  for (var index = 0; index < 7; index++) {
+    verbs["³⁴⁵⁶⁷⁸⁹"[index]].call = (x => () => x)(index < args.length ? args[index] : defaults[index]);
+  }
   filtered = "";
   for (var char of code) {
     if (char == "¶") char = "\n";

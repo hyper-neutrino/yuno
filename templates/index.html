@@ -13,6 +13,8 @@
     <script src="/static/yuno.js"></script>
     <script src="/static/script.js"></script>
 
+    <link rel="shortcut icon" type="image/jpg" href="/static/favicon.png" />
+
     <title>yuno interpreter</title>
   </head>
 
@@ -36,6 +38,11 @@
 
         <b>Command Line Arguments (newline-separated)</b><br /><br />
         <span id="base" onclick="add_argument('#base')" class="addbutton">+ add</span>
+        <br /><br />
+
+        <b>Flags</b><br /><br />
+        <input class="flag" id="forcelist" type="checkbox" />
+        <label for="forcelist">Force list output; don't collapse singleton lists</label>
         <br /><br />
 
         <button id="run">

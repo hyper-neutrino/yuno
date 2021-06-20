@@ -1,0 +1,18 @@
+link references
+---------------
+Ի                                  last link as a nilad
+Ը                                  last link as a monad
+Թ                                  last link as a dyad
+ի                                  next link as a nilad
+ը                                  next link as a monad
+թ                                  next link as a dyad
+ɨ                                  this link as a nilad
+ɫ                                  this link as a monad
+ɬ                                  this link as a dyad
+
+hypers
+------
+@              <link>@             swap arguments; for monads, convert to a dyad and use the right argument
+
+combinators
+-----------

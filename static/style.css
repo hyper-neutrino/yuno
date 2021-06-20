@@ -39,7 +39,7 @@ a {
 }
 
 .input {
-  font-family: "DejaVu Sans Mono", monospace;
+  font-family: "Consolas", "DejaVu Sans Mono", monospace;
   border: none;
   outline: none;
   resize: none;

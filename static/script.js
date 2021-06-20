@@ -25,7 +25,11 @@ function execute_code() {
   }
   output.value = "";
   stderr.value = "";
-  execute(code.value, [...$(".argbox>textarea")].map(x => x.value), input, x => output.value += x, x => stderr.value += x);
+  var flags = {};
+  for (var element of [...$(".flag")]) {
+    flags[element.id] = $(element).is(":checked");
+  }
+  execute(code.value, [...$(".argbox>textarea")].map(x => x.value), input, x => output.value += x, x => stderr.value += x, flags);
   updateHeight(output);
 }
 

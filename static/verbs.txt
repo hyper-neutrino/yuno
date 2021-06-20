@@ -1,0 +1,40 @@
+nilads
+------
+³                                  1st argument, or 16
+⁴                                  2nd argument, or 100
+⁵                                  3rd argument, or 10
+⁶                                  4th argument, or 64
+⁷                                  5th argument, or 256
+⁸                                  left argument, or '\n'
+⁹                                  right argument, or ' '
+
+monads
+------
+¹   (z: any)                       z; identity; z => z
+²   (z: num)                       z * z; square; squared
+    (z: str)                       format z as square
+    (z: any)                       (vectorize)
+
+dyads
+-----
++   (x: num, y: num)               x + y; addition; plus; add
+    (x: str, y: num)               x + y.toString(); concatenation
+    (x: num, y: str)               x.toString() + y; concatenation
+    (x: str, y: str)               x + y; concatenation
+    (x: any, y: any)               (vectorize)
+,   (x: any, y: any)               [x, y]; pair; (x, y) => [x, y]
+_   (x: num, y: num)               x - y; subtraction; minus
+    (x: chr, y: num)               chr(ord(x) - y); caesar cipher (ignores complex component)
+    (x: num, y: chr)               chr(ord(y) + x); caesar cipher (ignores complex component)
+    (x: chr, y: chr)               ?
+    (x: any, y: any)               (vectorize)
+×   (x: num, y: num)               x * y; multiplication; times
+    (x: str, y: num)               pad right to up to y with spaces
+    (x: num, y: str)               pad left to up to y with spaces
+    (x: str, y: str)               [c + y for c in x]; vectorized concatenation
+    (x: any, y: any)               (vectorize)
+÷   (x: num, y: num)               x / y; division; divide
+    (x: str, y: num)               ?
+    (x: num, y: str)               ?
+    (x: str, y: str)               ?
+    (x: any, y: any)               (vectorize)
