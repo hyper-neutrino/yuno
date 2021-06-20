@@ -23,7 +23,7 @@
       <div class="container">
         <br />
         <h2>yuno online interpeter</h2>
-        <p><a href="https://github.com/hyper-neutrino/yuno">yuno</a> is a tacit golfing language inspired by APL and Jelly</p><br />
+        <p><a href="https://github.com/hyper-neutrino/yuno">yuno</a> is a tacit golfing language inspired by APL and Jelly. <a href="/verbs">verbs</a>, <a href="/adverbs">adverbs</a>, <a href="/builtins">builtins</a></p><br />
 
         <br />
         <b>Code</b>
@@ -40,9 +40,8 @@
         <span id="base" onclick="add_argument('#base')" class="addbutton">+ add</span>
         <br /><br />
 
-        <b>Flags</b><br /><br />
-        <input class="flag" id="forcelist" type="checkbox" />
-        <label for="forcelist">Force list output; don't collapse singleton lists</label>
+        <b>Flags</b>
+        <textarea id="flags" class="input"></textarea>
         <br /><br />
 
         <button id="run">

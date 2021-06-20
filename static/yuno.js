@@ -52,6 +52,21 @@ let _mul = (x, y) => ({
   "value": [x.value[0] * y.value[0] - x.value[1] * y.value[1], x.value[0] * y.value[1] + x.value[1] * y.value[0]]
 });
 
+let _div = (x, y) => ({
+  "type": "number",
+  "value": y.value[0] == 0 && y.value[1] == 0 ?
+    x.value[0] == 0 && x.value[1] == 0 ?
+      [1, 0]
+    : x.value[0] > 0 ?
+        [Infinity, 0]
+      : x.value[0] < 0 ?
+          [-Infinity, 0]
+        : x.value[1] > 0 ?
+            [0, Infinity]
+          : [0, -Infinity]
+    : [(x.value[0] * y.value[0] + x.value[1] * y.value[1]) / (y.value[0] ** 2 - y.value[1] ** 2), (x.value[1] * y.value[0] - x.value[0] * y.value[1]) / (y.value[0] ** 2 - y.value[1] ** 2)]
+});
+
 let _neg = x => ({
   "type": "number",
   "value": [-x.value[0], -x.value[1]]
@@ -66,6 +81,79 @@ let _padleft = (x, y) => yunoify(" ".repeat(Math.max(0, y.value[0] - x.length)) 
 
 let _padright = (x, y) => yunoify(to_real_str(x) + " ".repeat(Math.max(0, y.value[0] - x.length)));
 
+let _multiline_divide = (x, y, z = y.value[0]) => z ? yunoify(to_real_str(x).split("\n").map(a => {
+  var ret = [];
+  for (var i = 0; i < a.length; i += z) {
+    ret.push(a.substring(i, i + z));
+  }
+  return ret;
+}).map(a => a.join("\n")).join("\n")) : x;
+
+let _range = (x, lo, hi) => {
+  x = x.value || x;
+  if (x[1] == 0) {
+    if (x[0] == Infinity) return _inf_range(lo);
+    if (x[0] == -Infinity) return _neg_inf_range(lo - 1);
+    if (x[0] >= 1) return yunoify(range(lo, x[0] + hi, 1));
+    return yunoify(range(lo - 1, x[0] + hi - 1, -1));
+  } else if (x[0] == 0) {
+    return _map(_swap_re_im, _range([x[1], x[0]], lo, hi));
+  } else {
+    return _cartesian_product(_range([x[0], 0], lo, hi), _range([0, x[1]], lo, hi), _add);
+  }
+};
+
+let _char_range = (x, y) => {
+  x = codepage.indexOf(x.value || x);
+  y = codepage.indexOf(y.value || y);
+  var r = y < x;
+  if (r) { var t = x; x = y; y = t; }
+  var out = range(x, y + 1).map(x => ynchar(codepage[x]));
+  if (r) out.reverse();
+  return yunoify(out);
+}
+
+let _inf_range = start => ({
+  "type": "sequence",
+  "call": x => yunoify(x + start - 1)
+});
+
+let _neg_inf_range = start => ({
+  "type": "sequence",
+  "call": x => yunoify(start - x + 1)
+});
+
+let _swap_re_im = x => ({
+  "type": "number",
+  "value": [x.value[1], x.value[0]]
+});
+
+let _map = (f, s) => ({
+  "type": "sequence",
+  "length": s.length,
+  "call": x => f(s.call(x))
+});
+
+let _cartesian_product = (x, y, f = (a, b) => list_to_func([a, b])) => ({
+  "type": "sequence",
+  "length": x.length,
+  "call": i => ({
+    "type": "sequence",
+    "length": y.length,
+    "call": j => f(x.call(i), y.call(j))
+  })
+});
+
+function range(start, end, step) {
+  if (end === undefined && step === undefined) { end = start; start = 0; step = 1; }
+  if (step === undefined) { step = end > start ? 1 : -1; }
+  var ret = [];
+  for (var x = start; end > start ? x < end : x > end; x += step) {
+    ret.push(x);
+  }
+  return ret;
+}
+
 verbs = {
   "+": {
     "arity": 2,
@@ -79,11 +167,19 @@ verbs = {
     "arity": 2,
     "call": (x, y) => list_to_func([x, y])
   },
+  "R": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? _range(x, 1, 1) : _char_range("A", x))
+  },
   "_": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
       (y.type == "number" ? _sub(x, y) : _cpshift(y, x))
     : (y.type == "number" ? _cpshift(x, _neg(y)) : fail("`_` not implemented on chr, chr")))
+  },
+  "ʀ": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? _range(x, 0, 0) : _char_range("a", x))
   },
   "¹": {
     "arity": 1,
@@ -130,7 +226,15 @@ verbs = {
     : (y.type == "number" ? _padright(x, y) : yunoify([...to_real_str(x)].map(a => a + to_real_str(y)))), {
       "dostring": false
     })
-  }
+  },
+  "÷": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? _div(x, y) : _multiline_divide(y, x))
+    : (y.type == "number" ? _multiline_divide(x, y) : yunoify(to_real_str(x).match(to_real_str(y)) || "")), {
+      "dostring": false
+    })
+  },
 }
 
 adverbs = {
@@ -307,6 +411,8 @@ function ynchar(x) {
 function yunoify(x, deep = true) {
   if (!Array.isArray(x) && !deep) return x;
 
+  if (x.type) return x;
+
   if (typeof x == "string") {
     return list_to_func([...x].map(ynchar));
   } else if (typeof x == "number") {
@@ -322,6 +428,10 @@ function yunoify(x, deep = true) {
 
 function tryeval(x) {
   try {
+    C = (x, y) => ({
+      "type": "number",
+      "value": y === undefined ? [0, x] : [x, y]
+    });
     return yunoify(eval(x));
   } catch {
     return yunoify(x);
@@ -330,7 +440,7 @@ function tryeval(x) {
 
 function unparse_number(x) {
   x = x.value;
-  if (x[1] == 0) {
+  if (x[1] == 0 || isNaN(x[0])) {
     return x[0].toString();
   } else {
     if (x[0] == 0) {
@@ -502,7 +612,7 @@ function tokenize(code) {
         }
       });
     } else if ("0123456789-.ɪᴊ".indexOf(code[index]) != -1) {
-      var item = code.substring(index).match(/((-?[0-9]*(\.[0-9]*)?)?(ᴊ(-?[0-9]*(\.[0-9]*)?)?)?)?(ɪ((-?[0-9]*(\.[0-9]*)?)?(ᴊ(-?[0-9]*(\.[0-9]*)?)?)?)?)?/)[0];
+      var item = code.substring(index).match(/^((-?[0-9]*(\.[0-9]*)?)?(ᴊ(-?[0-9]*(\.[0-9]*)?)?)?)?(ɪ((-?[0-9]*(\.[0-9]*)?)?(ᴊ(-?[0-9]*(\.[0-9]*)?)?)?)?)?/)[0];
       index += item.length - 1;
       literal = parse_number(item);
       last(lines).push({
@@ -631,16 +741,20 @@ function yuno_output(val, end = "", force = false) {
     if (force) {
       print(JSON.stringify(to_real_str(val)));
     } else {
-      print(to_real_str(val));
+      if (val.length == 0 && (force || settings.forcelist)) print("[]")
+      else print(to_real_str(val));
     }
   } else if (val.type == "sequence") {
     if (val.length == 1 && !settings.forcelist && !force) {
       yuno_output(val.call(1), end, force);
     } else if (val.length === undefined) {
+      var max = settings.capten ? 10 : Infinity;
       print("[");
-      for (var index = 1; ; index++) {
+      for (var index = 1; index <= max; index++) {
         yuno_output(val.call(index), end, true);
+        print(", ");
       }
+      print("...]");
     } else {
       print("[");
       for (var index = 1; index < val.length; index++) {
@@ -653,13 +767,7 @@ function yuno_output(val, end = "", force = false) {
       print("]");
     }
   } else if (val.type == "number") {
-    if (val.value[1] == 0) {
-      print(val.value[0].toString());
-    } else if (val.value[0] == 0) {
-      print(val.value[1].toString() + "ɪ");
-    } else {
-      print(val.value[0].toString() + "+" + val.value[1].toString() + "ɪ");
-    }
+    print(unparse_number(val));
   } else {
     print("<unknown value>");
   }
@@ -667,6 +775,9 @@ function yuno_output(val, end = "", force = false) {
 }
 
 function evaluate(chain, arity, x, y) {
+  verbs["⁸"].call = (x => () => x)(x === undefined ? ynchar("\n") : x);
+  verbs["⁹"].call = (x => () => x)(x === undefined ? ynchar(" ") : y);
+
   chain = chain.slice();
   var value;
 
@@ -763,12 +874,16 @@ function evaluate(chain, arity, x, y) {
 }
 
 function execute(code, args, input, print_func, error, flags = {}) {
+  if (flags.help) {
+    print_func("L - force list display (don't print singleton lists as just its element)\nT - cap infinite sequence output at 10 elements\nh - show this help message");
+    return;
+  }
   settings = flags;
   print = print_func;
   args = args.map(tryeval);
   var defaults = [yunoify(16), yunoify(100), yunoify(10), yunoify(64), yunoify(256), ynchar("\n"), ynchar(" ")];
   for (var index = 0; index < 7; index++) {
-    verbs["³⁴⁵⁶⁷⁸⁹"[index]].call = (x => () => x)(index < args.length ? args[index] : defaults[index]);
+    verbs["³⁴⁵⁶⁷⁸⁹"[index]].call = (x => () => x)(index < args.length && index < 5 ? args[index] : defaults[index]);
   }
   filtered = "";
   for (var char of code) {

@@ -7,15 +7,24 @@ function decode(str) {
 }
 
 function url() {
-  var items = [code.value, stdin.value, [...$(".argbox>textarea")].map(x => x.value)];
+  let flagbox = document.getElementById("flags");
+  var items = [code.value, stdin.value, flagbox.value, [...$(".argbox>textarea")].map(x => x.value)];
   return "/#" + encode(items);
 }
 
 function format() {
-  return "# [yuno], " + code.value.length + " byte" + (code.value.length == 1 ? "" : "s") + "\n\n```\n" + code.value + "\n```\n\n[Try it online!](" + document.location + " \"yuno online interpreter\")\n\n[yuno]: https://github.com/hyper-neutrino/yuno";
+  let flagbox = document.getElementById("flags");
+  return "# [yuno]" + (flagbox.value.trim() == "" ? "" : " `" + flagbox.value.trim() + "`") + ", " + code.value.length + " byte" + (code.value.length == 1 ? "" : "s") + "\n\n```\n" + code.value + "\n```\n\n[Try it online!](" + document.location + " \"yuno online interpreter\")\n\n[yuno]: https://github.com/hyper-neutrino/yuno";
 }
 
+let FLAGS = {
+  "L": "forcelist",
+  "T": "capten",
+  "h": "help"
+};
+
 function execute_code() {
+  let flagbox = document.getElementById("flags");
   outlabel.innerHTML = "STDOUT";
   var input = prompt;
   if (!$("#promptinstead").is(":checked")) {
@@ -26,8 +35,8 @@ function execute_code() {
   output.value = "";
   stderr.value = "";
   var flags = {};
-  for (var element of [...$(".flag")]) {
-    flags[element.id] = $(element).is(":checked");
+  for (var x of Object.keys(FLAGS)) {
+    flags[FLAGS[x]] = flagbox.value.indexOf(x) != -1;
   }
   execute(code.value, [...$(".argbox>textarea")].map(x => x.value), input, x => output.value += x, x => stderr.value += x, flags);
   updateHeight(output);
@@ -72,13 +81,15 @@ $(document).ready(e => {
   const outlabel = document.getElementById("outlabel");
   const output = document.getElementById("output");
   const stderr = document.getElementById("stderr");
+  const flagbox = document.getElementById("flags");
   const run = document.getElementById("run");
 
   if (document.location.hash) {
     var values = decode(document.location.hash.substring(1));
     code.value = values[0];
     stdin.value = values[1];
-    for (var x of values[2]) {
+    flagbox.value = values[2];
+    for (var x of values[3]) {
       add_argument("#base", x);
     }
     output.value = format();

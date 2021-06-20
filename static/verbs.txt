@@ -1,3 +1,5 @@
+(note: if a specified type combination isn't listed, it probably vectorizes)
+
 nilads
 ------
 ³                                  1st argument, or 16
@@ -10,10 +12,17 @@ nilads
 
 monads
 ------
+R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z - 1]
+    (z: im )                       Upper range; [i, 2i, ..., z] or [0, -i, ..., z - 1]
+    (z: cmp)                       Cartesian product of the above
+    (z: chr)                       Character range from "A"
+ʀ   (z: re )                       Lower range; [0, 1, ..., z - 1] or [-1, -2, ..., z]
+    (z: im )                       Lower range; [0, i, ..., z - i] or [-i, -2i, ..., z]
+    (z: cmp)                       Cartesian product of the above
+    (z: chr)                       Character range from "a"
 ¹   (z: any)                       z; identity; z => z
 ²   (z: num)                       z * z; square; squared
     (z: str)                       format z as square
-    (z: any)                       (vectorize)
 
 dyads
 -----
@@ -21,20 +30,16 @@ dyads
     (x: str, y: num)               x + y.toString(); concatenation
     (x: num, y: str)               x.toString() + y; concatenation
     (x: str, y: str)               x + y; concatenation
-    (x: any, y: any)               (vectorize)
 ,   (x: any, y: any)               [x, y]; pair; (x, y) => [x, y]
 _   (x: num, y: num)               x - y; subtraction; minus
     (x: chr, y: num)               chr(ord(x) - y); caesar cipher (ignores complex component)
     (x: num, y: chr)               chr(ord(y) + x); caesar cipher (ignores complex component)
     (x: chr, y: chr)               ?
-    (x: any, y: any)               (vectorize)
 ×   (x: num, y: num)               x * y; multiplication; times
     (x: str, y: num)               pad right to up to y with spaces
     (x: num, y: str)               pad left to up to y with spaces
     (x: str, y: str)               [c + y for c in x]; vectorized concatenation
-    (x: any, y: any)               (vectorize)
 ÷   (x: num, y: num)               x / y; division; divide
-    (x: str, y: num)               ?
-    (x: num, y: str)               ?
-    (x: str, y: str)               ?
-    (x: any, y: any)               (vectorize)
+    (x: str, y: num)               split each line into segments of at most length y, then join all on newlines; if y == 0, no-op
+    (x: num, y: str)               y / x
+    (x: str, y: str)               x.match(y); regex match; regex find
