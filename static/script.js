@@ -20,7 +20,13 @@ function format() {
 let FLAGS = {
   "L": "forcelist",
   "T": "capten",
-  "h": "help"
+  "U": "ir_upper",
+  "D": "ir_lower",
+  "O": "ir_outer",
+  "I": "ir_inner",
+  "h": "help",
+  "j": "ioj_newline",
+  "k": "ioj_space"
 };
 
 function execute_code() {

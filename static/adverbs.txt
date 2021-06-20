@@ -13,6 +13,8 @@ link references
 hypers
 ------
 @              <link>@             swap arguments; for monads, convert to a dyad and use the right argument
+Ͼ              <link>Ͼ             map over the left argument; nilads become monads
+Ͽ              <link>Ͽ             map over the right argument; monads become dyads and use the right argument only (equivalent to <link>Ͼ@)
 
 combinators
 -----------

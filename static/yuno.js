@@ -103,6 +103,8 @@ let _range = (x, type) => {
   }
 };
 
+let _implicit_range = x => _range(x, settings.ir_upper ? "upper" : settings.ir_lower ? "lower" : settings.ir_outer ? "outer" : settings.ir_inner ? "inner" : "upper");
+
 let _char_range = (x, y) => {
   x = codepage.indexOf(x.value || x);
   y = codepage.indexOf(y.value || y);
@@ -261,8 +263,24 @@ adverbs = {
   "ɬ": linkref(2, 0),
   "ի": linkref(0, 1),
   "ը": linkref(1, 1),
-  "թ": linkref(2, 1)
+  "թ": linkref(2, 1),
+  "Ͼ": {
+    "condition": hyper,
+    "call": (links, outers, index) => ({
+      "arity": Math.max(1, links[0].arity),
+      "call": (x, y) => _map(a => links[0].call(a, y), iter_range(x))
+    })
+  },
+  "Ͽ": {
+    "condition": hyper,
+    "call": (links, outers, index) => ({
+      "arity": 2,
+      "call": (x, y) => _map(b => links[0].call(x, b), iter_range(y))
+    })
+  }
 }
+
+let iter_range = x => x.type == "sequence" ? x : x.type == "character" ? list_to_func([x]) : _implicit_range(x);
 
 let depth = x => x.type == "sequence" ? (x.length === undefined || x.length == 0 ? 1 : minimum(func_to_list(x).map(x => depth(x))) + 1) : 0;
 let minimum = x => Math.min.apply(null, x);
@@ -591,13 +609,14 @@ function tokenize(code) {
           literal = ["TODO - figure out what to do with this"];
           break;
         } else if (code[index] == "»") {
+          var num = literal.map(x => from_base([...x].map(x => codepage.indexOf(x) + 1), 250));
           literal = ["TODO - dictionary compression"];
           break;
         } else if (code[index] == "‘") {
           literal = literal.map(x => [...x].map(x => codepage.indexOf(x)));
           break;
         } else if (code[index] == "’") {
-          literal = literal.map(x => from_base([...x].map(x => codepage.indexOf(x)), 250));
+          literal = literal.map(x => from_base([...x].map(x => codepage.indexOf(x) + 1), 250));
           break;
         } else {
           literal[literal.length - 1] += code[index];
@@ -883,7 +902,7 @@ function evaluate(chain, arity, x, y) {
 
 function execute(code, args, input, print_func, error, flags = {}) {
   if (flags.help) {
-    print_func("L - force list display (don't print singleton lists as just its element)\nT - cap infinite sequence output at 10 elements\nh - show this help message");
+    print_func("L - force list display (don't print singleton lists as just its element)\nT - cap infinite sequence output at 10 elements\nU - implicit range uses the upper strategy\nD - implicit range uses the lower strategy\nO - implicit range uses the outer strategy\nI - implicit range uses the inner strategy\nh - show this help message");
     return;
   }
   settings = flags;
@@ -906,7 +925,13 @@ function execute(code, args, input, print_func, error, flags = {}) {
     var chains = tokenize(filtered);
     var parsed = parse(chains);
     var result = evaluate(last(parsed), Math.min(args.length, 2), args[0], args[1]);
-    yuno_output(result);
+    if (settings.ioj_newline) {
+
+    } else if (settings.ioj_space) {
+
+    } else {
+      yuno_output(result);
+    }
   } catch (e) {
     error(e.toString());
     throw e;
