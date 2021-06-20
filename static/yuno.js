@@ -89,17 +89,17 @@ let _multiline_divide = (x, y, z = y.value[0]) => z ? yunoify(to_real_str(x).spl
   return ret;
 }).map(a => a.join("\n")).join("\n")) : x;
 
-let _range = (x, lo, hi) => {
+let _range = (x, type) => {
   x = x.value || x;
   if (x[1] == 0) {
-    if (x[0] == Infinity) return _inf_range(lo);
-    if (x[0] == -Infinity) return _neg_inf_range(lo - 1);
-    if (x[0] >= 1) return yunoify(range(lo, x[0] + hi, 1));
-    return yunoify(range(lo - 1, x[0] + hi - 1, -1));
+    if (x[0] == Infinity) return _inf_range(type == "lower" || type == "outer" ? 0 : 1);
+    if (x[0] == -Infinity) return _neg_inf_range(type == "upper" || type == "outer" ? 0 : -1);
+    if (x[0] >= 1) return yunoify(range(type == "lower" || type == "outer" ? 0 : 1, x[0] + (type == "upper" || type == "outer" ? 1 : 0), 1));
+    return yunoify(range(type == "lower" || type == "inner" ? -1 : 0, x[0] + (type == "lower" || type == "outer" ? -1 : 0), -1));
   } else if (x[0] == 0) {
-    return _map(_swap_re_im, _range([x[1], x[0]], lo, hi));
+    return _map(_swap_re_im, _range([x[1], x[0]], type));
   } else {
-    return _cartesian_product(_range([x[0], 0], lo, hi), _range([0, x[1]], lo, hi), _add);
+    return _cartesian_product(_range([x[0], 0], type), _range([0, x[1]], type), _add);
   }
 };
 
@@ -169,7 +169,7 @@ verbs = {
   },
   "R": {
     "arity": 1,
-    "call": vectorized(x => x.type == "number" ? _range(x, 1, 1) : _char_range("A", x))
+    "call": vectorized(x => x.type == "number" ? _range(x, "upper") : _char_range("A", x))
   },
   "_": {
     "arity": 2,
@@ -177,9 +177,17 @@ verbs = {
       (y.type == "number" ? _sub(x, y) : _cpshift(y, x))
     : (y.type == "number" ? _cpshift(x, _neg(y)) : fail("`_` not implemented on chr, chr")))
   },
+  "ɾ": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? _range(x, "outer") : _char_range("Γ", x))
+  },
+  "ʁ": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? _range(x, "inner") : _char_range("!", x))
+  },
   "ʀ": {
     "arity": 1,
-    "call": vectorized(x => x.type == "number" ? _range(x, 0, 0) : _char_range("a", x))
+    "call": vectorized(x => x.type == "number" ? _range(x, "lower") : _char_range("a", x))
   },
   "¹": {
     "arity": 1,

@@ -12,14 +12,22 @@ nilads
 
 monads
 ------
-R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z - 1]
-    (z: im )                       Upper range; [i, 2i, ..., z] or [0, -i, ..., z - 1]
-    (z: cmp)                       Cartesian product of the above
+R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z + 1]
+    (z: im )                       Upper range; [i, 2i, ..., z] or [0, -i, ..., z + i]
+    (z: cmp)                       Cartesian product over sum of the above
     (z: chr)                       Character range from "A"
 ʀ   (z: re )                       Lower range; [0, 1, ..., z - 1] or [-1, -2, ..., z]
     (z: im )                       Lower range; [0, i, ..., z - i] or [-i, -2i, ..., z]
-    (z: cmp)                       Cartesian product of the above
+    (z: cmp)                       Cartesian product over sum of the above
     (z: chr)                       Character range from "a"
+ɾ   (z: re )                       Outer range; [0, 1, ..., z] or [0, -1, ..., z]
+    (z: im )                       Outer range; [0, i, ..., z] or [0, -i, ..., z]
+    (z: cmp)                       Cartesian product over sum of the above
+    (z: chr)                       Character range from "Γ"
+ʁ   (z: re )                       Inner range; [1, 2, ..., z - 1] or [-1, -2, ..., z + 1]
+    (z: im )                       Inner range; [i, 2i, ..., z - i] or [-i, -2i, ..., z + i]
+    (z: cmp)                       Cartesian product over sum of the above
+    (z: chr)                       Character range from "!"
 ¹   (z: any)                       z; identity; z => z
 ²   (z: num)                       z * z; square; squared
     (z: str)                       format z as square
