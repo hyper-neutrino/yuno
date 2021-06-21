@@ -26,7 +26,8 @@ let FLAGS = {
   "I": "ir_inner",
   "h": "help",
   "j": "ioj_newline",
-  "k": "ioj_space"
+  "k": "ioj_space",
+  "t": "round_thousandth"
 };
 
 function execute_code() {

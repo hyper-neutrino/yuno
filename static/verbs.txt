@@ -10,6 +10,10 @@ nilads
 ⁸                                  left argument, or '\n'
 ⁹                                  right argument, or ' '
 
+math nilads
+-----------
+ᴍI                                 infinity
+
 monads
 ------
 R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z + 1]
@@ -32,8 +36,15 @@ R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z
 ²   (z: num)                       z * z; square; squared
     (z: str)                       format z as square
 
+math monads
+-----------
+
 dyads
 -----
+*   (x: num, y: num)               x ** y; exponentiation; power
+    (x: str, y: num)               ?
+    (x: num, y: str)               ?
+    (x: str, y: str)               ?
 +   (x: num, y: num)               x + y; addition; plus; add
     (x: str, y: num)               x + y.toString(); concatenation
     (x: num, y: str)               x.toString() + y; concatenation
@@ -51,3 +62,8 @@ _   (x: num, y: num)               x - y; subtraction; minus
     (x: str, y: num)               split each line into segments of at most length y, then join all on newlines; if y == 0, no-op
     (x: num, y: str)               y / x
     (x: str, y: str)               x.match(y); regex match; regex find
+
+math dyads
+----------
+ᴍA  (x: any, y: any)               Arithmetic Sequence; infinite sequence a => x + y * (a - 1)
+ᴍG  (x: any, y: any)               Geometric Sequence; infinite sequence a => x * y ** (a - 1)

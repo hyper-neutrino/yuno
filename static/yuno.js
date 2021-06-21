@@ -105,6 +105,40 @@ let _div = (x, y) => ({
       ]
 });
 
+let _exp = (x, y) => {
+  if (x.value[1] == 0 && y.value[1] == 0) {
+    return {
+      "type": "number",
+      "value": [EXP(x.value[0], y.value[0]), 0n]
+    };
+  } else {
+    var v = _ln(x);
+    var c = _mul(v, y);
+    var x = c.value[0];
+    var y = c.value[1];
+    return _mul({
+      "type": "number",
+      "value": [EXP(Math.E, x), 0]
+    }, {
+      "type": "number",
+      "value": [Math.cos(Number(y)), Math.sin(Number(y))]
+    });
+  }
+};
+
+let _ln = x => {
+  if (x.value[1] == 0) {
+    return yunoify(Math.log(Number(x.value[0])));
+  } else {
+    var r = Math.sqrt(Number(x.value[0]) ** 2 + Number(x.value[1]) ** 2);
+    var t = Math.atan2(Number(x.value[1]), Number(x.value[0]));
+    return {
+      "type": "number",
+      "value": [Math.log(r), t]
+    };
+  }
+};
+
 let floor = x => Math.floor(Number(x));
 let ceil = x => Math.ceil(Number(x));
 
@@ -197,7 +231,15 @@ function range(start, end, step) {
   return ret;
 }
 
-verbs = {
+let verbs = {
+  "*": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? _exp(x, y) : fail("`*` not implemented on num, str"))
+    : (y.type == "number" ? fail("`*` not implemented on str, num") : fail("`*` not implemented on str, str")), {
+      "dostring": false
+    })
+  },
   "+": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
@@ -227,6 +269,33 @@ verbs = {
   "ʁ": {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _range(x, "inner") : _char_range("!", x))
+  },
+  "ᴍA": {
+    "arity": 2,
+    "call": (x, y) => ({
+      "type": "sequence",
+      "call": i => verbs["+"].call(x, verbs["×"].call(y, {
+        "type": "number",
+        "value": [SUB(i, 1), 0n]
+      }))
+    })
+  },
+  "ᴍG": {
+    "arity": 2,
+    "call": (x, y) => ({
+      "type": "sequence",
+      "call": i => verbs["×"].call(x, verbs["*"].call(y, {
+        "type": "number",
+        "value": [SUB(i, 1), 0n]
+      }))
+    })
+  },
+  "ᴍI": {
+    "arity": 0,
+    "call": () => ({
+      "type": "number",
+      "value": [Infinity, 0n]
+    })
   },
   "ʀ": {
     "arity": 1,
@@ -288,7 +357,7 @@ verbs = {
   },
 }
 
-adverbs = {
+let adverbs = {
   "@": {
     "condition": hyper,
     "call": (links, outers, index) => ({
@@ -506,15 +575,32 @@ function tryeval(x) {
   }
 }
 
+function ynround(x) {
+  if (typeof x == "bigint") return x;
+  if (settings.round_thousandth) {
+    return Math.round(Number(x) * 1000) / 1000;
+  } else {
+    return x;
+  }
+}
+
 function unparse_number(x) {
   x = x.value;
-  if (x[1] == 0 || isNaN(x[0])) {
-    return x[0].toString();
+  a = ynround(x[0]);
+  b = ynround(x[1]);
+  if (b == 0 || isNaN(Number(a))) {
+    return a.toString();
   } else {
-    if (x[0] == 0) {
-      return x[1].toString() + "ɪ";
+    if (a == 0) {
+      if (b == 1) {
+        return "ɪ";
+      } else if (b == -1) {
+        return "-ɪ";
+      } else {
+        return b.toString() + "ɪ";
+      }
     } else {
-      return x[0].toString() + "+" + x[1].toString() + "ɪ";
+      return a.toString() + "+" + b.toString() + "ɪ";
     }
   }
 }
@@ -944,7 +1030,14 @@ function evaluate(chain, arity, x, y) {
 
 function execute(code, args, input, print_func, error, flags = {}) {
   if (flags.help) {
-    print_func("L - force list display (don't print singleton lists as just its element)\nT - cap infinite sequence output at 10 elements\nU - implicit range uses the upper strategy\nD - implicit range uses the lower strategy\nO - implicit range uses the outer strategy\nI - implicit range uses the inner strategy\nh - show this help message");
+    print_func("L - force list display (don't print singleton lists as just its element)\n"
+             + "T - cap infinite sequence output at 10 elements\n"
+             + "U - implicit range uses the upper strategy\n"
+             + "D - implicit range uses the lower strategy\n"
+             + "O - implicit range uses the outer strategy\n"
+             + "I - implicit range uses the inner strategy\n"
+             + "t - round all numbers to the nearest thousandth\n"
+             + "h - show this help message");
     return;
   }
   settings = flags;
