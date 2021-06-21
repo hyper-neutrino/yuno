@@ -13,11 +13,18 @@ If the first character is `“`, begin reading a string literal. Any character o
 - if `‘` is encountered, terminate a code-page index list
 - if `’` is encountered, terminate a base-250 number
 
-If the first character is `”`, the next character is a character literal.
+If the first character is `”`, the next character is a character literal (space should be used if EOF is reached).
 
-If the first character is any of `0123456789-.ɪᴇғ`, begin reading a number literal.
+If the first character is `ˌ`, the next two characters are a string literal (spaces should be used if EOF is reached).
+
+If the first character is `‼`, the next two characters are a base-256 number literal (`Γ` should be used if EOF is reached).
+
+If the first character is `ᴋ`, this and the next character form a literal digraph (check `constdigraphs.js`).
+
+If the first character is any of `0123456789-.ɪʙᴇғ`, begin reading a number literal.
 - `-?[0-9]*(\.[0-9]*)?` is a number (of course this cannot be empty) - `-` is `-1`, `[x].` is `[x].5`
 - `{number: numerator}ғ{number: denominator}` is a fraction literal (default `1ғ3`)
+- `{number: mantissa}ʙ{number: exponent}` is a binary exponential literal - `mantissa * 2 ^ exponent` (default `1ʙ4`)
 - `{number: mantissa}ᴇ{number: exponent}` is an exponential literal - `mantissa * 10 ^ exponent` (default `1ᴇ3`)
 - `{number: real}ɪ{number: imaginary}` is a complex literal - `real + imaginary * i` (default `0ɪ1`)
 

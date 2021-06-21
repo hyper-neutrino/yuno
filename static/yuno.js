@@ -1,6 +1,6 @@
 codepage  = "ΓΔΘΞΠΣΦΨΩαβγδεζηθικλμξπρςστυφχψω !\"#$%&'()*+,-./0123456789:;<=>?"
 codepage += "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\n"
-codepage += "äæçðøħŋœǂɐɒɓɔɕɖɗɘɛɜɞɟɠɣɤɥɦɧɨɫɬɭɮɯɰɱɲɳɵɶɹɻɽɾʁʂʃʄʈʉʊʋʌʎʐʑʒʔʛʝʞʡʢˌᶑ"
+codepage += "äæçðøħŋœǂɐɒɓɔɕɖɗɘ¡¿ɞɟɠɣɤɥɦɧɨɫɬɭɮɯɰɱɲɳɵɶɹɻɽɾʁʂʃʄʈʉʊʋʌʎʐʑʒʔʛʝʞʡʢˌᶑ"
 codepage += "‖ᴀʙᴅᴇғɢʜɪᴊᴋʟᴍɴᴘǫʀᴛʏԻԸԹիըթ‼°¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼×÷¬ϨϩϪϫϮϯϰϱϷϸϻϼϾϿ┝┥«»‘’“”"
 
 let linkref = (arity, offset) => ({
@@ -31,7 +31,7 @@ let iter_range = x => x.type == "sequence" ? x : x.type == "character" ? list_to
 
 let depth = x => x.type == "sequence" ? (x.length === undefined || x.length == 0 ? 1 : minimum(func_to_list(x).map(x => depth(x))) + 1) : 0;
 let minimum = x => Math.min.apply(null, x);
-let modulo = (x, y) => ADD(REM(x, y), LT(x, 0) ? y : 0);
+let modulo = (x, y) => y == 0 ? NaN : y > 0 ? ADD(REM(x, y), LT(x, 0) ? y : 0) : x % y == 0 ? 0 : (modulo(x, -y) + y);
 let indexmod = (x, y) => modulo(x - 1, y) + 1;
 
 let nn = f => (x, y) => {
@@ -63,9 +63,10 @@ let SUB = N("-");
 let MUL = N("*");
 let DIV = N("/");
 let TDV = (x, y) => Number(x) / Number(y);
+let FDV = (x, y) => typeof x == "bigint" && typeof y == "bigint" ? y == 0 ? x > 0 ? Infinity : x < 0 ? -Infinity : 1n : y < 0 && x > 0 ? (x - y - 1n) / y : x / y : floor(TDV(x, y));
 let REM = N("%");
 let MOD = nn(modulo);
-let DIVMOD = (x, y) => [DIV(x, y), MOD(x, y)];
+let DIVMOD = (x, y) => [FDV(x, y), MOD(x, y)];
 let EXP = N("**");
 
 let GT = N(">");
@@ -247,6 +248,37 @@ let _map = (f, s) => memoize({
   "call": x => f(s.call(x))
 });
 
+let _filter = (f, s) => {
+  if (s.length === undefined) {
+    var record = [];
+    var inverted = [];
+    var fscan = 1;
+    var bscan = 0;
+    return {
+      "type": "sequence",
+      "call": x => {
+        if (x >= 1) {
+          while (record.length < x) {
+            var v = s.call(fscan++);
+            if (f(v)) record.push(v);
+          }
+          return record[x - 1];
+        } else {
+          while (inverted.length <= x) {
+            var v = s.call(bscan--);
+            if (f(v)) inverted.push(v);
+          }
+          return inverted[-x];
+        }
+      }
+    }
+  } else {
+    return list_to_func(func_to_list(s).filter(x => f(x)));
+  }
+}
+
+let _chr = x => ynchar(codepage[floor(Number(x.value[0])) % 256]);
+
 let _cartesian_product = (x, y, f = (a, b) => list_to_func([a, b])) => memoize({
   "type": "sequence",
   "length": x.length,
@@ -256,6 +288,78 @@ let _cartesian_product = (x, y, f = (a, b) => list_to_func([a, b])) => memoize({
     "call": j => f(x.call(i), y.call(j))
   })
 });
+
+let _from_base = (x, y) => {
+  if (x.type != "sequence") {
+    console.log(x);
+    throw "cannot from-base convert object of type " + x.type + "; check the console";
+  } else if (x.length === undefined) {
+    throw "cannot from-base convert infinite sequences";
+  } else if (y.type != "number") {
+    console.log(y);
+    throw "cannot convert with base of type " + y.type + "; check the console";
+  } else {
+    var value = yunoify(0n);
+    for (var index = 1; index <= x.length; index++) {
+      value = _add(_mul(value, y), x.call(index));
+    }
+    return value;
+  }
+};
+
+let _to_base = (x, y, bj = false) => {
+  var num = x.value[0];
+  var base = y.value[0];
+  if (base == 0) throw yunoify([num]);
+  if (num == 0) return yunoify([0]);
+  if (base == -1) {
+    var digits = [...Array(Math.abs(Number(num) * 2))].map((_, i) => 1 - i % 2);
+    if (num > 0) digits.pop();
+    return yunoify(digits);
+  }
+  var sign = num < 0 && base > 0 ? -1 : 1;
+  num = MUL(num, sign);
+  if (base == 1) return yunoify([...Array(Number(num))].map(_ => sign));
+  var digits = [];
+  while (num) {
+    num = SUB(num, bj ? 1 : 0);
+    var [num, digit] = DIVMOD(num, base);
+    digit = ADD(digit, bj ? 1 : 0);
+    if (digit < 0) {
+      num = ADD(num, 1);
+      digit = SUB(digit, base);
+    }
+    digits.push(MUL(digit, sign));
+  }
+  digits.reverse();
+  return yunoify(digits);
+};
+
+let _to_arbitrary_base = (x, y) => (y => _map(x => yunoify(y[x])), _to_base(yunoify(floor(x.value[0])), yunoify(y.length)))(to_real_str(y));
+
+let _primeq = x => {
+  var F = yunoify(0), T = yunoify(1);
+  if (x.value[1]) return F;
+  x = x.value[0];
+  if (MOD(x, 1)) return F;
+  if (LT(x, 2)) return F;
+  if (LT(x, 4)) return T;
+  if (MOD(x, 2) == 0) return F;
+  for (var f = 3; LE(f * f, x); f += 2) {
+    if (MOD(x, f) == 0) return F;
+  }
+  return T;
+}
+
+function to_bool(v) {
+  if (v.type == "sequence") {
+    return v.length !== 0;
+  } else if (v.type == "number") {
+    return v.value[0] != 0 || v.value[1] != 0;
+  } else if (v.type == "character") {
+    return true;
+  }
+}
 
 function range(start, end, step) {
   if (end === undefined && step === undefined) { end = start; start = 0; step = 1; }
@@ -300,6 +404,31 @@ let verbs = {
     "arity": 0,
     "call": (x, y) => yunoify("yuno by hyper-neutrino")
   },
+  "β": {
+    "arity": 2,
+    "call": vectorized((x, y) => {
+      if (x.type == "number") x = list_to_func([x]);
+      if (x.type == "character") x = list_to_func([x]);
+      if (y.type == "character") y = list_to_func([y]);
+
+      if (x.length && is_string(x)) {
+        if (is_string(y)) {
+          throw "`β` not implemented on str, str";
+        } else {
+          return _from_base(yunoify([...to_real_str(x)].map(x => "0123456789abcdefghijklmnopqrstuvwxyz".indexOf(x.toLowerCase())).filter(x => x >= 0)), y);
+        }
+      } else {
+        if (is_string(y)) {
+          return _from_base(yunoify([...to_real_str(y)].map(x => "0123456789abcdefghijklmnopqrstuvwxyz".indexOf(x.toLowerCase())).filter(x => x >= 0)), x);
+        } else {
+          return _from_base(x, y);
+        }
+      }
+    }, {
+      "dostring": false,
+      "invdepthl": 1
+    })
+  },
   "ι": {
     "arity": 0,
     "call": (x, y) => _inf_range(1n)
@@ -332,6 +461,10 @@ let verbs = {
     "arity": 1,
     "call": x => x.type == "sequence" ? yunoify(x.length === undefined ? Infinity : BigInt(x.length)) : yunoify(BigInt(to_real_str(x).length))
   },
+  "P": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? _primeq(x) : fail("`P` not implemented on chr"))
+  },
   "R": {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _range(x, "upper") : _char_range("A", x))
@@ -342,29 +475,66 @@ let verbs = {
       (y.type == "number" ? _sub(x, y) : _cpshift(y, x))
     : (y.type == "number" ? _cpshift(x, _neg(y)) : fail("`_` not implemented on chr, chr")))
   },
+  "b": {
+    "arity": 2,
+    "call": vectorized((x, y) => {
+      if (x.type == "character") x = list_to_func([x]);
+      if (y.type == "character") y = list_to_func([y]);
+      if (x.type == "number") {
+        if (y.type == "number") {
+          var df = SUB(x.value[0], floor(x.value[0]));
+          x.value[0] = floor(x.value[0]);
+          var dg = _to_base({
+            "type": "number",
+            "value": [x.value[0], 0n]
+          }, {
+            "type": "number",
+            "value": [y.value[0], 0n]
+          });
+          if (df) dg = (p => memoize({
+            "type": "sequence",
+            "length": dg.length,
+            "call": x => _add(p.call(x), yunoify((modulo(x, dg.length) == 0 ? df : 0)))
+          }))(dg);
+
+          return dg;
+        } else {
+          return _to_arbitrary_base(x, y);
+        }
+      } else {
+        if (y.type == "number") {
+          return _to_arbitrary_base(y, x);
+        } else {
+          throw "`b` not implemented on str, str";
+        }
+      }
+    }, {
+      "dostring": false
+    })
+  },
   "r": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
       (y.type == "number" ? arbitrary_range(x, y, false, false) : fail("`r` not implemented on num, chr"))
-    : (y.type == "number" ? fail("`r` not implemented on chr, num") : _map(x => ynchar(codepage[floor(Number(x.value[0]))]), arbitrary_range(yunoify(codepage.indexOf(x.value)), yunoify(codepage.indexOf(y.value))))))
+    : (y.type == "number" ? fail("`r` not implemented on chr, num") : _map(_chr, arbitrary_range(yunoify(codepage.indexOf(x.value)), yunoify(codepage.indexOf(y.value))))))
   },
   "ɹ": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
       (y.type == "number" ? arbitrary_range(x, y, true, true) : fail("`r` not implemented on num, chr"))
-    : (y.type == "number" ? fail("`r` not implemented on chr, num") : ((x, y) => _map(x => ynchar(codepage[floor(Number(x.value[0])) % 256]), arbitrary_range(yunoify(x > y ? x : x + 256), yunoify(x > y ? y + 256 : y))))(codepage.indexOf(x.value), codepage.indexOf(y.value))))
+    : (y.type == "number" ? fail("`r` not implemented on chr, num") : ((x, y) => _map(_chr, arbitrary_range(yunoify(x > y ? x : x + 256), yunoify(x > y ? y + 256 : y))))(codepage.indexOf(x.value), codepage.indexOf(y.value))))
   },
   "ɻ": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
       (y.type == "number" ? arbitrary_range(x, y, true, false) : fail("`r` not implemented on num, chr"))
-    : (y.type == "number" ? fail("`r` not implemented on chr, num") : fail("`r` not implemented on chr, chr")))
+    : (y.type == "number" ? fail("`r` not implemented on chr, num") : ((x, y) => _map(_chr, arbitrary_range(yunoify(x > y ? x : x + 256), yunoify(y))))(codepage.indexOf(x.value), codepage.indexOf(y.value))))
   },
   "ɽ": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
       (y.type == "number" ? arbitrary_range(x, y, false, true) : fail("`r` not implemented on num, chr"))
-    : (y.type == "number" ? fail("`r` not implemented on chr, num") : fail("`r` not implemented on chr, chr")))
+    : (y.type == "number" ? fail("`r` not implemented on chr, num") : ((x, y) => _map(_chr, arbitrary_range(yunoify(x), yunoify(x > y ? y + 256 : y))))(codepage.indexOf(x.value), codepage.indexOf(y.value))))
   },
   "ɾ": {
     "arity": 1,
@@ -373,10 +543,6 @@ let verbs = {
   "ʁ": {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _range(x, "inner") : _char_range("!", x))
-  },
-  "ᴋH": {
-    "arity": 0,
-    "call": () => yunoify("Hello, World!")
   },
   "ᴍA": {
     "arity": 2,
@@ -474,6 +640,13 @@ let absref = arity => ({
 });
 
 let adverbs = {
+  "Ξ": {
+    "condition": hyper,
+    "call": (links, outers, index) => ({
+      "arity": Math.max(links[0].arity, 1),
+      "call": (x, y) => _filter(a => to_bool(links[0].call(a, y)), iter_range(x))
+    })
+  },
   "φ": absref(0),
   "χ": absref(1),
   "ψ": absref(2),
@@ -489,6 +662,13 @@ let adverbs = {
     "call": (links, outers, index) => ({
       "arity": links[0].arity == 1 ? 2 : 1,
       "call": (x, y) => links[0].call(x, x)
+    })
+  },
+  "‖": {
+    "condition": hyper,
+    "call": (links, outers, index) => ({
+      "arity": Math.max(links[0].arity, 1),
+      "call": (x, y) => _filter(a => !to_bool(links[0].call(a, y)), iter_range(x))
     })
   },
   "Ի": linkref(0, -1),
@@ -545,17 +725,18 @@ these don't apply when one side is not vectorized
 function vectorize(call, left, right, config) {
   config = elvis(config, {});
 
-  var maxdepth = elvis(config.maxdepth, -1);
-  var invdepth = elvis(config.invdepth, -1);
+  var maxdepthl = elvis(config.maxdepthl, -1);
+  var maxdepthr = elvis(config.maxdepthr, -1);
+  var invdepthl = elvis(config.invdepthl, -1);
+  var invdepthr = elvis(config.invdepthr, -1);
   var strategy = elvis(elvis(config.strategy, settings.vectorization_strategy), "default");
-  var dostring = elvis(config.dostring, true);
+  var dostringl = elvis(config.dostringl, elvis(config.dostring, true));
+  var dostringr = elvis(config.dostringr, elvis(config.dostring, true));
 
-  var should_vectorize = x => x && x.type == "sequence" && (dostring || !is_string(x)) && maxdepth != 0 && depth(x) > invdepth;
+  var do_left = left && left.type == "sequence" && (dostringl || !is_string(left)) && maxdepthl != 0 && depth(left) > invdepthl;
+  var do_right = right && right.type == "sequence" && (dostringr || !is_string(right)) && maxdepthr != 0 && depth(right) > invdepthr;
 
-  var do_left = should_vectorize(left);
-  var do_right = should_vectorize(right);
-
-  var new_config = clone(config); new_config.maxdepth = maxdepth - 1;
+  var new_config = clone(config); new_config.maxdepthl = maxdepthl - 1; new_config.maxdepthr = maxdepthr - 1;
 
   if (do_left) {
     if (do_right) {
@@ -736,7 +917,12 @@ function parse_number(x) {
     var a = x.split("ᴇ");
     a[0] = a[0] || "1";
     a[1] = a[1] || "3";
-    return [parse_number(a[0])[0] * 10n ** parse_number(a[1])[0], 0];
+    return [MUL(parse_number(a[0])[0], EXP(10n, parse_number(a[1])[0])), 0n];
+  } else if (x.indexOf("ʙ") != -1) {
+    var a = x.split("ʙ");
+    a[0] = a[0] || "1";
+    a[1] = a[1] || "4";
+    return [MUL(parse_number(a[0])[0], EXP(2n, parse_number(a[1])[0])), 0n];
   } else if (x.indexOf("ғ") != -1) {
     var a = x.split("ғ");
     a[0] = a[0] || "1";
@@ -915,10 +1101,11 @@ function tokenize(code) {
           "value": literal
         }
       });
-    } else if ("0123456789-.ɪᴇғ".indexOf(code[index]) != -1) {
+    } else if ("0123456789-.ɪʙᴇғ".indexOf(code[index]) != -1) {
       var re = "-?\\d*(\\.\\d*)?";
       var fr = "(" + re + "(ғ" + re + ")?)";
-      var xp = "(" + fr + "(ᴇ" + fr + ")?)";
+      var bn = "(" + fr + "(ʙ" + fr + ")?)";
+      var xp = "(" + bn + "(ᴇ" + bn + ")?)";
       var im = "(" + xp + "(ɪ" + xp + ")?)";
       var item = code.substring(index).match("^" + im)[0]
       index += item.length - 1;
@@ -930,6 +1117,21 @@ function tokenize(code) {
           "value": literal
         }
       });
+    } else if (code[index] == "ˌ") {
+      last(lines).push({
+        "type": "literal",
+        "value": yunoify((code[++index] || " ") + (code[++index] || " "))
+      });
+    } else if (code[index] == "‼") {
+      var v = from_base([codepage.indexOf(code[++index] || "Γ") + 1, codepage.indexOf(code[++index] || "Γ") + 1], 256n) + 744n;
+      if (v > 33318n) {
+        v -= 66637n;
+      }
+      last(lines).push({
+        "type": "literal",
+        "value": yunoify(v)
+      });
+      console.log(v);
     } else if (code[index] == "[") {
       last(lines).push({
         "type": "literal",
@@ -1074,16 +1276,28 @@ function yuno_output(val, end = "", force = false) {
     } else {
       print("[");
       for (var index = 1; index < val.length; index++) {
-        yuno_output(val.call(index), end, true);
+        yuno_output(val.call(index), end, force);
         print(", ");
       }
       if (val.length > 0) {
-        yuno_output(val.call(val.length), end, true);
+        yuno_output(val.call(val.length), end, force);
       }
       print("]");
     }
   } else if (val.type == "number") {
     print(unparse_number(val));
+  } else if (val.type == "character") {
+    if (!force) {
+      print(val.value);
+    } else if (val.value == "'") {
+      print("'\\''");
+    } else if (val.value == "\n") {
+      print("'\n''");
+    } else if (val.value == "\\") {
+      print("'\\\\'");
+    } else {
+      print("'" + val.value + "'");
+    }
   } else {
     print("<unknown value>");
   }
@@ -1209,7 +1423,7 @@ function execute(code, args, input, print_func, error, flags = {}) {
   settings = flags;
   print = print_func;
   args = args.map(tryeval);
-  var defaults = [yunoify(16n), yunoify(100n), yunoify(10n), yunoify(64n), yunoify(256n), ynchar("\n"), ynchar(" ")];
+  var defaults = [ynchar("\n"), ynchar(" "), yunoify(64n), yunoify(32n), yunoify(100n), yunoify(256n), yunoify(10n)];
   for (var index = 0; index < 7; index++) {
     verbs["³⁴⁵⁶⁷⁸⁹"[index]].call = (x => () => x)(index < args.length ? args[index] : defaults[index]);
   }

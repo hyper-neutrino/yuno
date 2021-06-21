@@ -8,7 +8,7 @@ nilads
 ³                                  1st argument, or '\n'
 ⁴                                  2nd argument, or ' '
 ⁵                                  3rd argument, or 64
-⁶                                  4th argument, or 16
+⁶                                  4th argument, or 32
 ⁷                                  5th argument, or 100
 ⁸                                  6th argument, or 256
 ⁹                                  7th argument, or 10
@@ -17,14 +17,14 @@ math nilads
 -----------
 ᴍI                                 infinity
 
-string nilads
--------------
-ᴋH                                 "Hello, World!"
+digraph nilads are at /static/various-nilads.txt
 
 monads
 ------
 L   (z: num)                       Stringified length
     (z: any)                       Length
+P   (z: num)                       Primality check; Is prime
+    (z: chr)                       ?
 R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z + 1]
     (z: im )                       Upper range; [i, 2i, ..., z] or [0, -i, ..., z + i]
     (z: cmp)                       Cartesian product over sum of the above
@@ -50,6 +50,10 @@ math monads
 
 dyads
 -----
+β   (x: [n], y: num)               convert x from base y (x => [x] if necessary)
+    (x: str, y: num)               convert x from base y up to 36
+    (x: num, y: str)               convert y from base x up to 36
+    (x: str, y: str)               ?
 *   (x: num, y: num)               x ** y; exponentiation; power
     (x: str, y: num)               ?
     (x: num, y: str)               ?
@@ -62,6 +66,10 @@ dyads
 _   (x: num, y: num)               x - y; subtraction; minus
     (x: chr, y: num)               chr(ord(x) - y); caesar cipher (ignores complex component)
     (x: num, y: chr)               chr(ord(y) + x); caesar cipher (ignores complex component)
+    (x: chr, y: chr)               ?
+b   (x: num, y: num)               convert x to base y (removes the imaginary component of y)
+    (x: str, y: num)               convert y into arbitrary custom base x
+    (x: num, y: str)               convert x into arbitrary custom base y
     (x: chr, y: chr)               ?
 r   (x: num, y: num)               Inclusive Range (re, re => [re]; im, im => [im]; otherwise => cartesian product over +)
     (x: chr, y: num)               ?
