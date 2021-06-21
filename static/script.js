@@ -115,7 +115,7 @@ $(document).ready(e => {
   if (document.location.hash) {
     var values = decode(document.location.hash.substring(1));
     header.value = values[0]; if (header.value) toggle(document.getElementById("tg-header"), header);
-    code.value = values[1]; toggle(document.getElementById("tg-code"), code);
+    code.value = values[1];
     footer.value = values[2]; if (footer.value) toggle(document.getElementById("tg-footer"), footer);
     stdin.value = values[3]; if (stdin.value) toggle(document.getElementById("tg-stdin"), stdin);
     flagbox.value = values[4]; if (flagbox.value) toggle(document.getElementById("tg-flags"), flagbox);
@@ -125,6 +125,8 @@ $(document).ready(e => {
     if (values[5].length) toggle(document.getElementById("tg-clas"), document.getElementById("clas"));
     output.value = format();
   }
+
+  toggle(document.getElementById("tg-code"), code);
 
   u = () => {
     [...$(".input")].forEach(x => updateHeight(x));
