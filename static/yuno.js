@@ -62,6 +62,7 @@ let ADD = N("+");
 let SUB = N("-");
 let MUL = N("*");
 let DIV = N("/");
+let TDV = (x, y) => Number(x) / Number(y);
 let REM = N("%");
 let MOD = nn(modulo);
 let DIVMOD = (x, y) => [DIV(x, y), MOD(x, y)];
@@ -118,8 +119,8 @@ let _div = (x, y) => ({
             [0n, Infinity]
           : [0n, -Infinity]
     : [
-        DIV(ADD(MUL(x.value[0], y.value[0]), MUL(x.value[1], y.value[1])), (SUB(EXP(y.value[0], 2), EXP(y.value[1], 2)))),
-        DIV(SUB(MUL(x.value[1], y.value[0]), MUL(x.value[0], y.value[1])), SUB(EXP(y.value[0], 2), EXP(y.value[1], 2)))
+        TDV(ADD(MUL(x.value[0], y.value[0]), MUL(x.value[1], y.value[1])), (SUB(EXP(y.value[0], 2), EXP(y.value[1], 2)))),
+        TDV(SUB(MUL(x.value[1], y.value[0]), MUL(x.value[0], y.value[1])), SUB(EXP(y.value[0], 2), EXP(y.value[1], 2)))
       ]
 });
 
@@ -957,10 +958,12 @@ function tokenize(code) {
 }
 
 function parse_chain(chain, chains, links, outerindex, stack) {
-  var stack = stack || links[outerindex];
+  var stack = stack === undefined ? links[outerindex] : stack;
   for (var index = 0; index < chain.length; index++) {
     if (chain[index].type == "verb") {
-      stack.push(chain[index].value);
+      var verb = chain[index].value || chain[index];
+      verb.type = "verb";
+      stack.push(verb);
     } else if (chain[index].type == "adverb") {
       var adverb = chain[index].value;
       var inner = [];
@@ -968,9 +971,13 @@ function parse_chain(chain, chains, links, outerindex, stack) {
         inner.splice(0, 0, stack.pop());
       }
       if (adverb.condition(inner)) {
-        stack.push(adverb.call(inner, links, outerindex));
+        var verb = adverb.call(inner, links, outerindex);
+        verb.type = "verb";
+        stack.push(verb);
       } else if (chain[index].fail) {
-        stack.push(adverb.fail(inner, links, outerindex));
+        var verb = adverb.fail(inner, links, outerindex);
+        verb.type = "verb";
+        stack.push(verb);
       } else {
         throw "adverb failed to meet its condition and does not have a default behavior: `" + chain[index].name + "`";
       }
@@ -995,10 +1002,12 @@ function parse_chain(chain, chains, links, outerindex, stack) {
           "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y))(parse_chain(inner, chains, links, outerindex, []), arity)
         });
       } else {
+        var subchain = stack.splice(0, stack.length);
+        var arity = chain[index].arity;
         stack.push({
           "type": "verb",
-          "arity": chain[index].arity,
-          "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y))(parse_chain(stack.splice(0, stack.length), chains, links, outerindex, []), chain[index].arity)
+          "arity": arity,
+          "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y))(parse_chain(subchain, chains, links, outerindex, []), arity)
         });
       }
     } else {
