@@ -24,6 +24,7 @@ var settings = {
 };
 
 var print;
+var error;
 
 let fail = x => { throw x; }
 
@@ -1132,6 +1133,15 @@ function tokenize(code) {
         "value": yunoify(v)
       });
       console.log(v);
+    } else if (code[index] == "ᴋ") {
+      var v = k_digraphs["ᴋ" + (code[++index] || "H")];
+      if (v === 0) {
+        error("warning: literal digraph `ᴋ" + (code[index] || "H") + "` doesn't appear to have been defined yet, so 0 has been returned\n");
+      }
+      last(lines).push({
+        "type": "literal",
+        "value": yunoify(v)
+      });
     } else if (code[index] == "[") {
       last(lines).push({
         "type": "literal",
@@ -1403,7 +1413,7 @@ function evaluate(chain, arity, x, y) {
   }
 }
 
-function execute(code, args, input, print_func, error, flags = {}) {
+function execute(code, args, input, print_func, error_func, flags = {}) {
   if (flags.help) {
     print_func("L - force list display (don't print singleton lists as just its element)\n"
              + "T - cap infinite sequence output at 10 elements\n"
@@ -1422,6 +1432,7 @@ function execute(code, args, input, print_func, error, flags = {}) {
   }
   settings = flags;
   print = print_func;
+  error = error_func;
   args = args.map(tryeval);
   var defaults = [ynchar("\n"), ynchar(" "), yunoify(64n), yunoify(32n), yunoify(100n), yunoify(256n), yunoify(10n)];
   for (var index = 0; index < 7; index++) {
@@ -1433,7 +1444,7 @@ function execute(code, args, input, print_func, error, flags = {}) {
     if (codepage.indexOf(char) != -1) {
       filtered += char;
     } else {
-      error("`" + char + "` is not in the codepage and has been removed.");
+      error("`" + char + "` is not in the codepage and has been removed\n");
     }
   }
   try {
@@ -1470,7 +1481,7 @@ function execute(code, args, input, print_func, error, flags = {}) {
       yuno_output(result);
     }
   } catch (e) {
-    error(e.toString());
+    error(e.toString() + "\n");
     throw e;
   }
 }

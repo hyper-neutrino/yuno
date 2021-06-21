@@ -19,7 +19,7 @@ If the first character is `ˌ`, the next two characters are a string literal (sp
 
 If the first character is `‼`, the next two characters are a base-256 number literal (`Γ` should be used if EOF is reached).
 
-If the first character is `ᴋ`, this and the next character form a literal digraph (check `constdigraphs.js`).
+If the first character is `ᴋ`, this and the next character form a literal digraph (check `constdigraphs.js`) (default `ᴋH`).
 
 If the first character is any of `0123456789-.ɪʙᴇғ`, begin reading a number literal.
 - `-?[0-9]*(\.[0-9]*)?` is a number (of course this cannot be empty) - `-` is `-1`, `[x].` is `[x].5`
