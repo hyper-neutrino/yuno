@@ -15,10 +15,11 @@ If the first character is `“`, begin reading a string literal. Any character o
 
 If the first character is `”`, the next character is a character literal.
 
-If the first character is any of `0123456789-.ɪᴊ`, begin reading a number literal.
+If the first character is any of `0123456789-.ɪᴇғ`, begin reading a number literal.
 - `-?[0-9]*(\.[0-9]*)?` is a number (of course this cannot be empty) - `-` is `-1`, `[x].` is `[x].5`
-- `{number: mantissa}ᴊ{number: exponent}` is an exponential literal - `mantissa * 10 ^ exponent`
-- `{number: real}ɪ{number: imaginary}` is a complex literal - `real + imaginary * i`
+- `{number: numerator}ғ{number: denominator}` is a fraction literal (default `1ғ3`)
+- `{number: mantissa}ᴇ{number: exponent}` is an exponential literal - `mantissa * 10 ^ exponent` (default `1ᴇ3`)
+- `{number: real}ɪ{number: imaginary}` is a complex literal - `real + imaginary * i` (default `0ɪ1`)
 
 List literals are parsed via stranding - that is, placing multiple literals one after another joins them into a list. `[` and `]` should auto-balance via prepending or appending matching brackets if necessary.
 

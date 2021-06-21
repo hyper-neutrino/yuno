@@ -732,11 +732,16 @@ function parse_number(x) {
     a[0] = a[0] || "0";
     a[1] = a[1] || "1";
     return a.map(x => parse_number(x)[0]);
-  } else if (x.indexOf("ᴊ") != -1) {
-    var a = x.split("ᴊ");
+  } else if (x.indexOf("ᴇ") != -1) {
+    var a = x.split("ᴇ");
     a[0] = a[0] || "1";
     a[1] = a[1] || "3";
-    return [parse_number(a[0])[0] * 10 ** parse_number(a[1])[0], 0];
+    return [parse_number(a[0])[0] * 10n ** parse_number(a[1])[0], 0];
+  } else if (x.indexOf("ғ") != -1) {
+    var a = x.split("ғ");
+    a[0] = a[0] || "1";
+    a[1] = a[1] || "3";
+    return [Number(parse_number(a[0])[0]) / Number(parse_number(a[1])[0]), 0]
   } else if (x[0] == "-") {
     return [-parse_number(x.substring(1) || "1")[0], 0];
   } else if (x.indexOf(".") != -1) {
@@ -910,8 +915,12 @@ function tokenize(code) {
           "value": literal
         }
       });
-    } else if ("0123456789-.ɪᴊ".indexOf(code[index]) != -1) {
-      var item = code.substring(index).match(/^((-?[0-9]*(\.[0-9]*)?)?(ᴊ(-?[0-9]*(\.[0-9]*)?)?)?)?(ɪ((-?[0-9]*(\.[0-9]*)?)?(ᴊ(-?[0-9]*(\.[0-9]*)?)?)?)?)?/)[0];
+    } else if ("0123456789-.ɪᴇғ".indexOf(code[index]) != -1) {
+      var re = "-?\\d*(\\.\\d*)?";
+      var fr = "(" + re + "(ғ" + re + ")?)";
+      var xp = "(" + fr + "(ᴇ" + fr + ")?)";
+      var im = "(" + xp + "(ɪ" + xp + ")?)";
+      var item = code.substring(index).match("^" + im)[0]
       index += item.length - 1;
       literal = parse_number(item);
       last(lines).push({
