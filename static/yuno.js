@@ -365,6 +365,13 @@ let adverbs = {
       "call": (x, y) => links[0].call(y, x)
     })
   },
+  "`": {
+    "condition": hyper,
+    "call": (links, outers, index) => ({
+      "arity": links[0].arity == 1 ? 2 : 1,
+      "call": (x, y) => links[0].call(x, x)
+    })
+  },
   "Ի": linkref(0, -1),
   "Ը": linkref(1, -1),
   "Թ": linkref(2, -1),

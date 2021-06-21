@@ -12,7 +12,13 @@ link references
 
 hypers
 ------
-@              <link>@             swap arguments; for monads, convert to a dyad and use the right argument
+@              <link>@             swap arguments
+                                   for monads, convert to a dyad and use the right argument
+                                   for nilads, convert to a dyad and ignore the arguments
+`              <link>`             selfie; repeat argument
+                                   for dyads, convert to a monad and use the argument on both sides
+                                   for monads, convert to a dyad and use the left argument
+                                   for nilads, convert to a monad and ignore the argument
 Ͼ              <link>Ͼ             map over the left argument; nilads become monads
 Ͽ              <link>Ͽ             map over the right argument; monads become dyads and use the right argument only (equivalent to <link>Ͼ@)
 
