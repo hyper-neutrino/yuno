@@ -39,39 +39,39 @@ let k_digraphs = {
   "ᴋ%": 0,
   "ᴋ&": 0,
   "ᴋ'": 0,
-  "ᴋ(": 0,
+  "ᴋ(": "()", // round brackets; parentheses
   "ᴋ)": 0,
   "ᴋ*": 0,
-  "ᴋ+": 0,
+  "ᴋ+": [1, -1], // signs
   "ᴋ,": 0,
-  "ᴋ-": 0,
-  "ᴋ.": 0,
+  "ᴋ-": [-1, 1], // signs
+  "ᴋ.": [0, 1], // bits
   "ᴋ/": 0,
-  "ᴋ0": 0,
-  "ᴋ1": 0,
-  "ᴋ2": 0,
-  "ᴋ3": 0,
-  "ᴋ4": 0,
-  "ᴋ5": 0,
-  "ᴋ6": 0,
-  "ᴋ7": 0,
-  "ᴋ8": 0,
-  "ᴋ9": 0,
+  "ᴋ0": [0, 0], // zeroes
+  "ᴋ1": [1, 1], // ones
+  "ᴋ2": [2, 2], // twos
+  "ᴋ3": [3, 3], // threes
+  "ᴋ4": [4, 4], // fours
+  "ᴋ5": [5, 5], // fives
+  "ᴋ6": [6, 6], // sixes
+  "ᴋ7": [7, 7], // sevens
+  "ᴋ8": [8, 8], // eights
+  "ᴋ9": [9, 9], // nines
   "ᴋ:": 0,
   "ᴋ;": 0,
-  "ᴋ<": 0,
+  "ᴋ<": "<>", // angle brackets
   "ᴋ=": 0,
   "ᴋ>": 0,
   "ᴋ?": 0,
   "ᴋ@": 0,
-  "ᴋA": 0,
-  "ᴋB": 0,
-  "ᴋC": 0,
+  "ᴋA": "ABCDEFGHIJKLMNOPQRSTUVWXYZ", // uppercase alphabet
+  "ᴋB": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", // base digits
+  "ᴋC": "BCDFGHJKLMNPQRSTVWXZ", // uppercase consonants without Y
   "ᴋD": 0,
   "ᴋE": 0,
   "ᴋF": 0,
   "ᴋG": 0,
-  "ᴋH": 0,
+  "ᴋH": "Hello, World!", // hello world
   "ᴋI": 0,
   "ᴋJ": 0,
   "ᴋK": 0,
@@ -80,30 +80,30 @@ let k_digraphs = {
   "ᴋN": 0,
   "ᴋO": 0,
   "ᴋP": 0,
-  "ᴋQ": 0,
+  "ᴋQ": ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"], // uppercase QWERTY, uppercase keyboard
   "ᴋR": 0,
   "ᴋS": 0,
   "ᴋT": 0,
-  "ᴋU": 0,
-  "ᴋV": 0,
+  "ᴋU": "AEIOUY", // uppercase vowels with Y
+  "ᴋV": "AEIOU", // uppercase vowels without Y
   "ᴋW": 0,
   "ᴋX": 0,
-  "ᴋY": 0,
+  "ᴋY": "BCDFGHJKLMNPQRSTVWXYZ", // uppercase consonants with Y
   "ᴋZ": 0,
-  "ᴋ[": 0,
+  "ᴋ[": "[]", // square brackets
   "ᴋ\\": 0,
   "ᴋ]": 0,
-  "ᴋ^": 0,
+  "ᴋ^": "/\\", // slashes
   "ᴋ_": 0,
   "ᴋ`": 0,
-  "ᴋa": 0,
+  "ᴋa": "abcdefghijklmnopqrstuvwxyz", // lowercase alphabet
   "ᴋb": 0,
-  "ᴋc": 0,
+  "ᴋc": "bcdfghjklmnpqrstvwxz", // lowercase consonants without Y
   "ᴋd": 0,
   "ᴋe": 0,
   "ᴋf": 0,
   "ᴋg": 0,
-  "ᴋh": 0,
+  "ᴋh": "0123456789abcdef", // lowercase hexadecimal digits
   "ᴋi": 0,
   "ᴋj": 0,
   "ᴋk": 0,
@@ -112,24 +112,24 @@ let k_digraphs = {
   "ᴋn": 0,
   "ᴋo": 0,
   "ᴋp": 0,
-  "ᴋq": 0,
+  "ᴋq": ["qwertyuiop", "asdfghjkl", "zxcvbnm"], // lowercase qwerty, lowercase keyboard
   "ᴋr": 0,
   "ᴋs": 0,
   "ᴋt": 0,
-  "ᴋu": 0,
-  "ᴋv": 0,
+  "ᴋu": "aeiouy", // lowercase vowels with Y
+  "ᴋv": "aeiou", // lowercase vowels without Y
   "ᴋw": 0,
   "ᴋx": 0,
-  "ᴋy": 0,
+  "ᴋy": "bcdfghjklmnpqrstvwxyz", // lowercase consonants with Y
   "ᴋz": 0,
-  "ᴋ{": 0,
+  "ᴋ{": "{}", // curly brackets; braces
   "ᴋ|": 0,
   "ᴋ}": 0,
   "ᴋ~": 0,
   "ᴋ\n": 0,
   "ᴋä": 0,
   "ᴋæ": 0,
-  "ᴋç": 0,
+  "ᴋç": "BCDFGHJKLMNPQRSTVWXZbcdfghjklmnpqrstvwxz", // consonants without Y
   "ᴋð": 0,
   "ᴋø": 0,
   "ᴋħ": 0,
@@ -192,13 +192,13 @@ let k_digraphs = {
   "ᴋˌ": 0,
   "ᴋᶑ": 0,
   "ᴋ‖": 0,
-  "ᴋᴀ": 0,
+  "ᴋᴀ": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", // alphabet
   "ᴋʙ": 0,
-  "ᴋᴅ": 0,
+  "ᴋᴅ": "0123456789", // decimal digits
   "ᴋᴇ": 0,
   "ᴋғ": 0,
   "ᴋɢ": 0,
-  "ᴋʜ": 0,
+  "ᴋʜ": "0123456789ABCDEF", // uppercase hexadecimal digits
   "ᴋɪ": 0,
   "ᴋᴊ": 0,
   "ᴋᴋ": 0,
@@ -209,7 +209,7 @@ let k_digraphs = {
   "ᴋǫ": 0,
   "ᴋʀ": 0,
   "ᴋᴛ": 0,
-  "ᴋʏ": 0,
+  "ᴋʏ": "BCDFGHJKLMNPQRSTVWXYZbcdfghjklmnpqrstvwxyz", // consonants with Y
   "ᴋԻ": 0,
   "ᴋԸ": 0,
   "ᴋԹ": 0,
@@ -217,12 +217,12 @@ let k_digraphs = {
   "ᴋը": 0,
   "ᴋթ": 0,
   "ᴋ‼": 0,
-  "ᴋ°": 0,
-  "ᴋ¹": 0,
-  "ᴋ²": 0,
-  "ᴋ³": 0,
-  "ᴋ⁴": 0,
-  "ᴋ⁵": 0,
+  "ᴋ°": [0], // singleton list 0
+  "ᴋ¹": [1], // singleton list 1
+  "ᴋ²": [1, 2], // range to 2
+  "ᴋ³": [1, 2, 3], // range to 3
+  "ᴋ⁴": [1, 2, 3, 4], // range to 4
+  "ᴋ⁵": 250, // 250; compression base
   "ᴋ⁶": 0,
   "ᴋ⁷": 0,
   "ᴋ⁸": 0,

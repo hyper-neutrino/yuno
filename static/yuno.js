@@ -352,6 +352,62 @@ let _primeq = x => {
   return T;
 }
 
+let _EQ = (x, y) => {
+  if (x.type === undefined && y.type === undefined) {
+    if (Array.isArray(x)) {
+      if (Array.isArray(y)) {
+        return x.length == y.length && [...Array(x.length)].every((_, i) => _EQ(x[i], y[i]));
+      } else {
+        return false;
+      }
+    } else {
+      if (Array.isArray(y)) {
+        return false;
+      } else {
+        return x == y;
+      }
+    }
+  } else if (x.type != y.type) {
+    return false;
+  } else {
+    if (x.type == "sequence") {
+      if (x.length === undefined || y.length === undefined || x.length != y.length) return false;
+      for (var index = 1; index <= x.length; index++) {
+        if (!_EQ(x.call(index), y.call(index))) return false;
+      }
+      return true;
+    } else {
+      return _EQ(x.value, y.value);
+    }
+  }
+};
+
+let _eq = (x, y) => yunoify(_EQ(x, y) ? 1 : 0);
+
+let _index_of = (x, y) => {
+  if (x.type != "sequence") x = list_to_func([x]);
+  for (var index = 1; x.length === undefined || index <= x.length; index++) {
+    if (_EQ(x.call(index), y)) return yunoify(index);
+  }
+  return yunoify(0);
+}
+
+let _index_into = (x, y) => {
+  if (x.type == "number") {
+    if (x.value[1]) {
+      return x.value.map(k => _index_into(k, y));
+    } else {
+      return _index_into(x.value[0], y);
+    }
+  } else {
+    if (MOD(x, 1) == 0) {
+      return y.call(Number(x));
+    } else {
+      return [_index_into(floor(x), y), _index_into(ceil(x), y)];
+    }
+  }
+};
+
 function to_bool(v) {
   if (v.type == "sequence") {
     return v.length !== 0;
@@ -513,11 +569,21 @@ let verbs = {
       "dostring": false
     })
   },
+  "i": {
+    "arity": 2,
+    "call": _index_of
+  },
   "r": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
       (y.type == "number" ? arbitrary_range(x, y, false, false) : fail("`r` not implemented on num, chr"))
     : (y.type == "number" ? fail("`r` not implemented on chr, num") : _map(_chr, arbitrary_range(yunoify(codepage.indexOf(x.value)), yunoify(codepage.indexOf(y.value))))))
+  },
+  "ɨ": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ? _index_into(x, y.type == "sequence" ? y : list_to_func([y])) : fail("`ɨ` not implemented for chr, any"), {
+      "maxdepthr": 0
+    })
   },
   "ɹ": {
     "arity": 2,
@@ -815,7 +881,7 @@ function list_to_func(x) {
   return memoize({
     "type": "sequence",
     "length": x.length,
-    "call": (a => i => a[modulo(i - 1, a.length)])(x)
+    "call": (a => i => a[MOD(i - 1, a.length)])(x)
   })
 }
 
@@ -1264,9 +1330,9 @@ function isLCC(chain) {
   return true;
 }
 
-function yuno_output(val, end = "", force = false) {
+function yuno_output(val, end = "", force = false, fstring = false) {
   if (is_string(val)) {
-    if (force) {
+    if (force || fstring) {
       print(JSON.stringify(to_real_str(val)));
     } else {
       if (val.length == 0 && (force || settings.forcelist)) print("[]")
@@ -1274,30 +1340,30 @@ function yuno_output(val, end = "", force = false) {
     }
   } else if (val.type == "sequence") {
     if (val.length == 1 && !settings.forcelist && !force) {
-      yuno_output(val.call(1), end, force);
+      yuno_output(val.call(1), end, force, fstring);
     } else if (val.length === undefined) {
       var max = settings.capten ? 10 : Infinity;
       print("[");
       for (var index = 1; index <= max; index++) {
-        yuno_output(val.call(index), end, true);
+        yuno_output(val.call(index), end, true, true);
         print(", ");
       }
       print("...]");
     } else {
       print("[");
       for (var index = 1; index < val.length; index++) {
-        yuno_output(val.call(index), end, force);
+        yuno_output(val.call(index), end, force, true);
         print(", ");
       }
       if (val.length > 0) {
-        yuno_output(val.call(val.length), end, force);
+        yuno_output(val.call(val.length), end, force, true);
       }
       print("]");
     }
   } else if (val.type == "number") {
     print(unparse_number(val));
   } else if (val.type == "character") {
-    if (!force) {
+    if (!force && !fstring) {
       print(val.value);
     } else if (val.value == "'") {
       print("'\\''");

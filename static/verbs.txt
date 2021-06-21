@@ -71,10 +71,13 @@ b   (x: num, y: num)               convert x to base y (removes the imaginary co
     (x: str, y: num)               convert y into arbitrary custom base x
     (x: num, y: str)               convert x into arbitrary custom base y
     (x: chr, y: chr)               ?
+i   (x: [ ], y: any)               find the first index of y in x (0 if not found; freezes on infinite lists; will not scan backwards)
 r   (x: num, y: num)               Inclusive Range (re, re => [re]; im, im => [im]; otherwise => cartesian product over +)
     (x: chr, y: num)               ?
     (x: num, y: chr)               ?
     (x: chr, y: chr)               Character Range
+ɨ   (x: num, y: [ ])               find the element at index x of y; if x is complex, at real(x) and imag(x); if x is a decimal, at floor(x) and ceil(x)
+    (x: chr, y: [ ])               ?
 ɹ   (x: num, y: num)               Exclusive Range (re, re => [re]; im, im => [im]; otherwise => cartesian product over +)
     (x: chr, y: num)               ?
     (x: num, y: chr)               ?
