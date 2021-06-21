@@ -9,7 +9,7 @@ If the first character is `“`, begin reading a string literal. Any character o
 - if `“` is encountered, the literal now becomes a list of strings
 - if `”` is encountered, end the string literal
 - if `«` is encountered, (TODO - define what this means)
-- if `»` is encountered, terminate a dictionary-compressed string literal (decoding is up to the interpreter)
+- if `»` is encountered, terminate a dictionary-compressed string literal (decoding is up to the interpreter - the default is a jelly clone with the local codepage)
 - if `‘` is encountered, terminate a code-page index list
 - if `’` is encountered, terminate a base-250 number
 

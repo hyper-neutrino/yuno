@@ -24,10 +24,13 @@ let FLAGS = {
   "D": "ir_lower",
   "O": "ir_outer",
   "I": "ir_inner",
-  "h": "help",
   "j": "ioj_newline",
   "k": "ioj_space",
-  "t": "round_thousandth"
+  "d": "ioj_off",
+  "t": "round_thousandth",
+  "M": "memoize_off",
+  "_": "cap_off",
+  "h": "help"
 };
 
 function execute_code() {
@@ -45,7 +48,10 @@ function execute_code() {
   for (var x of Object.keys(FLAGS)) {
     flags[FLAGS[x]] = flagbox.value.indexOf(x) != -1;
   }
-  execute(code.value, [...$(".argbox>textarea")].map(x => x.value), input, x => output.value += x, x => stderr.value += x, flags);
+  execute(code.value, [...$(".argbox>textarea")].map(x => x.value), input, x => {
+    output.value += x;
+    if (!flags["cap_off"] && output.value.length > 131072) throw "output has exceeded 128 KB";
+  }, x => stderr.value += x, flags);
   updateHeight(output);
 }
 
@@ -116,6 +122,7 @@ $(document).ready(e => {
   });
 
   $("#run").on("click", e => {
+    document.location = url();
     execute_code();
   })
 

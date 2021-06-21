@@ -2,6 +2,7 @@
 
 nilads
 ------
+ι                                  [1, 2, 3, ...]
 ³                                  1st argument, or 16
 ⁴                                  2nd argument, or 100
 ⁵                                  3rd argument, or 10

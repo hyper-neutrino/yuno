@@ -13,6 +13,11 @@ let linkref = (arity, offset) => ({
 
 let hyper = x => x.length == 1;
 
+let memoize = x => (cache => ({
+  "type": "sequence",
+  "call": i => cache[i] === undefined ? cache[i] = x.call(i) : cache[i]
+}))({});
+
 var settings = {
 
 };
@@ -21,7 +26,14 @@ var print;
 
 let fail = x => { throw x; }
 
-let N = f => (f => (x, y) => {
+let iter_range = x => x.type == "sequence" ? x : x.type == "character" ? list_to_func([x]) : _implicit_range(x);
+
+let depth = x => x.type == "sequence" ? (x.length === undefined || x.length == 0 ? 1 : minimum(func_to_list(x).map(x => depth(x))) + 1) : 0;
+let minimum = x => Math.min.apply(null, x);
+let modulo = (x, y) => ADD(REM(x, y), LT(x, 0) ? y : 0);
+let indexmod = (x, y) => modulo(x - 1, y) + 1;
+
+let nn = f => (x, y) => {
   if (typeof x == "bigint" && typeof y == "number") {
     try {
       y = BigInt(y);
@@ -39,7 +51,9 @@ let N = f => (f => (x, y) => {
   }
 
   return f(x, y);
-})(OP(f));
+}
+
+let N = f => nn(OP(f));
 
 let OP = x => eval("(a, b) => a " + x + " b");
 
@@ -47,6 +61,9 @@ let ADD = N("+");
 let SUB = N("-");
 let MUL = N("*");
 let DIV = N("/");
+let REM = N("%");
+let MOD = nn(modulo);
+let DIVMOD = (x, y) => [DIV(x, y), MOD(x, y)];
 let EXP = N("**");
 
 let GT = N(">");
@@ -107,10 +124,17 @@ let _div = (x, y) => ({
 
 let _exp = (x, y) => {
   if (x.value[1] == 0 && y.value[1] == 0) {
-    return {
-      "type": "number",
-      "value": [EXP(x.value[0], y.value[0]), 0n]
-    };
+    if (y.value[0] >= 0) {
+      return {
+        "type": "number",
+        "value": [EXP(x.value[0], y.value[0]), 0n]
+      };
+    } else {
+      return {
+        "type": "number",
+        "value": [Number(x.value[0]) ** Number(y.value[0]), 0n]
+      };
+    }
   } else {
     var v = _ln(x);
     var c = _mul(v, y);
@@ -190,7 +214,7 @@ let _char_range = (x, y) => {
   return yunoify(out);
 }
 
-let _inf_range = start => ({
+let _inf_range = start => memoize({
   "type": "sequence",
   "call": x => yunoify(ADD(x, SUB(start, 1)))
 });
@@ -232,6 +256,10 @@ function range(start, end, step) {
 }
 
 let verbs = {
+  "ι": {
+    "arity": 0,
+    "call": (x, y) => _inf_range(1n)
+  },
   "*": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
@@ -397,13 +425,6 @@ let adverbs = {
   }
 }
 
-let iter_range = x => x.type == "sequence" ? x : x.type == "character" ? list_to_func([x]) : _implicit_range(x);
-
-let depth = x => x.type == "sequence" ? (x.length === undefined || x.length == 0 ? 1 : minimum(func_to_list(x).map(x => depth(x))) + 1) : 0;
-let minimum = x => Math.min.apply(null, x);
-let modulo = (x, y) => x % y + (x < 0 ? y : 0);
-let indexmod = (x, y) => modulo(x - 1, y) + 1;
-
 function from_base(x, b) {
   var v = 0;
   for (var k of x) {
@@ -535,7 +556,7 @@ function func_to_list(x) {
 
 function to_real_str(x) {
   if (x.type == "character") return x.value;
-  if (x.type == "number") return unparse(x);
+  if (x.type == "number") return unparse_number(x);
   return func_to_list(x).map(x => x.value).join("");
 }
 
@@ -744,14 +765,39 @@ function tokenize(code) {
           literal = ["TODO - figure out what to do with this"];
           break;
         } else if (code[index] == "»") {
-          var num = literal.map(x => from_base([...x].map(x => codepage.indexOf(x) + 1), 250));
-          literal = ["TODO - dictionary compression"];
+          var nums = literal.map(x => from_base([...x].map(x => codepage.indexOf(x) + 1), 250n));
+          literal = nums.map(x => {
+            var dc = "";
+            while (x) {
+              var [x, m] = DIVMOD(x, 3n);
+              if (m == 0) {
+                var [x, c] = DIVMOD(x, 96n);
+                dc += codepage[c + 32n];
+              } else {
+                f_sw = false;
+                f_sp = dc != "";
+                if (m == 2) {
+                  var [x, f] = DIVMOD(x, 3n);
+                  f_sw = f != 1;
+                  f_sp ^= f != 0;
+                }
+                var [x, s] = DIVMOD(x, 2n);
+                dict = s ? dictionary.short : dictionary.long;
+                var [x, n] = DIVMOD(x, dict.length);
+                var w = dict[n];
+                if (f_sw) w = (w[0] == w[0].toUpperCase() ? w[0].toLowerCase() : w[0].toUpperCase()) + w.substring(1);
+                if (f_sp) w = " " + w;
+                dc += w;
+              }
+            }
+            return dc;
+          });
           break;
         } else if (code[index] == "‘") {
           literal = literal.map(x => [...x].map(x => codepage.indexOf(x)));
           break;
         } else if (code[index] == "’") {
-          literal = literal.map(x => from_base([...x].map(x => codepage.indexOf(x) + 1), 250));
+          literal = literal.map(x => from_base([...x].map(x => codepage.indexOf(x) + 1), 250n));
           break;
         } else {
           literal[literal.length - 1] += code[index];
@@ -1043,7 +1089,12 @@ function execute(code, args, input, print_func, error, flags = {}) {
              + "D - implicit range uses the lower strategy\n"
              + "O - implicit range uses the outer strategy\n"
              + "I - implicit range uses the inner strategy\n"
-             + "t - round all numbers to the nearest thousandth\n"
+             + "j - final implicit output joins on newlines\n"
+             + "k - final implicit output joins on spaces\n"
+             + "d - disable implicit output\n"
+             + "t - round all numbers to the nearest thousandth\n",
+             + "M - don't memoize sequence calls (warning: severe performance degradation is possible)\n"
+             + "_ - don't cap output (warning: program may freeze)\n"
              + "h - show this help message");
     return;
   }
@@ -1067,10 +1118,32 @@ function execute(code, args, input, print_func, error, flags = {}) {
     var chains = tokenize(filtered);
     var parsed = parse(chains);
     var result = evaluate(last(parsed), Math.min(args.length, 2), args[0], args[1]);
-    if (settings.ioj_newline) {
+    if (settings.ioj_off) {
 
+    } else if (settings.ioj_newline) {
+      if (result.type != "sequence") result = yunoify([...to_real_str(result)]);
+      var max = result.length === undefined ? settings.capten ? 11 : Infinity : result.length;
+      for (var x = 1; x < max; x++) {
+        yuno_output(result.call(x));
+        print("\n");
+      }
+      if (result.length) {
+        yuno_output(result.call(result.length));
+      } else if (result.length === undefined) {
+        print("...");
+      }
     } else if (settings.ioj_space) {
-
+      if (result.type != "sequence") result = yunoify([...to_real_str(result)]);
+      var max = result.length === undefined ? settings.capten ? 11 : Infinity : result.length;
+      for (var x = 1; x < max; x++) {
+        yuno_output(result.call(x));
+        print(" ");
+      }
+      if (result.length) {
+        yuno_output(result.call(result.length));
+      } else if (result.length === undefined) {
+        print("...");
+      }
     } else {
       yuno_output(result);
     }

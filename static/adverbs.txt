@@ -21,6 +21,8 @@ hypers
                                    for nilads, convert to a monad and ignore the argument
 Ͼ              <link>Ͼ             map over the left argument; nilads become monads
 Ͽ              <link>Ͽ             map over the right argument; monads become dyads and use the right argument only (equivalent to <link>Ͼ@)
+ᴍS             <link>ᴍS            custom recursively defined sequence (seq[1] is left argument, seq[x] = f(seq[x - 1]))
 
 combinators
 -----------
+ᴍs             <f><g>ᴍs            custom two-way recursively defined sequence (seq[1] is left argument, seq[x] = f(seq[x + 1]), seq[x] = g(seq[x - 1]))
