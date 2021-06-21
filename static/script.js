@@ -8,7 +8,7 @@ function decode(str) {
 
 function url() {
   let flagbox = document.getElementById("flags");
-  var items = [code.value, stdin.value, flagbox.value, [...$(".argbox>textarea")].map(x => x.value)];
+  var items = [header.value, code.value, footer.value, stdin.value, flagbox.value, [...$(".argbox>textarea")].map(x => x.value)];
   return "/#" + encode(items);
 }
 
@@ -34,8 +34,10 @@ let FLAGS = {
 };
 
 function execute_code() {
+  document.location = url();
   let flagbox = document.getElementById("flags");
-  outlabel.innerHTML = "STDOUT";
+  let outlabel = document.getElementById("tg-output");
+  outlabel.innerHTML = outlabel.innerHTML[0] + " STDOUT";
   var input = prompt;
   if (!$("#promptinstead").is(":checked")) {
     var lines = stdin.value.split("\n");
@@ -48,7 +50,7 @@ function execute_code() {
   for (var x of Object.keys(FLAGS)) {
     flags[FLAGS[x]] = flagbox.value.indexOf(x) != -1;
   }
-  execute(code.value, [...$(".argbox>textarea")].map(x => x.value), input, x => {
+  execute((header.value && header.value + "\n") + code.value + (footer.value && "\n" + footer.value), [...$(".argbox>textarea")].map(x => x.value), input, x => {
     output.value += x;
     if (!flags["cap_off"] && output.value.length > 131072) throw "output has exceeded 128 KB";
   }, x => stderr.value += x, flags);
@@ -80,18 +82,31 @@ function rm_argument(target) {
 
 updatehistory = {}
 
-function updateHeight(element) {
-  if (updatehistory[element.id] == element.value) return;
+function updateHeight(element, force = false) {
+  if (!force && updatehistory[element.id] == element.value) return;
   updatehistory[element.id] = element.value;
   element.style.height = "";
   element.style.height = element.scrollHeight + "px";
 }
 
+function toggle(t, u) {
+  if (u.hidden) {
+    t.innerHTML = "▾" + t.innerHTML.substring(1);
+    u.hidden = false;
+  } else {
+    t.innerHTML = "▸" + t.innerHTML.substring(1);
+    u.hidden = true;
+  }
+  if (u.id != "clas") updateHeight(u, true);
+}
+
 $(document).ready(e => {
   $(".wrap").on("keydown", e => e.ctrlKey && e.keyCode != 86 || e.metaKey || e.keyCode == 9 ? "" : e.preventDefault()).on("paste", e => e.preventDefault()).on("cut", e => e.preventDefault());
+  const header = document.getElementById("header");
   const code = document.getElementById("code");
+  const footer = document.getElementById("footer");
   const stdin = document.getElementById("stdin");
-  const outlabel = document.getElementById("outlabel");
+  const outlabel = document.getElementById("tg-output");
   const output = document.getElementById("output");
   const stderr = document.getElementById("stderr");
   const flagbox = document.getElementById("flags");
@@ -99,12 +114,15 @@ $(document).ready(e => {
 
   if (document.location.hash) {
     var values = decode(document.location.hash.substring(1));
-    code.value = values[0];
-    stdin.value = values[1];
-    flagbox.value = values[2];
-    for (var x of values[3]) {
+    header.value = values[0]; if (header.value) toggle(document.getElementById("tg-header"), header);
+    code.value = values[1]; toggle(document.getElementById("tg-code"), code);
+    footer.value = values[2]; if (footer.value) toggle(document.getElementById("tg-footer"), footer);
+    stdin.value = values[3]; if (stdin.value) toggle(document.getElementById("tg-stdin"), stdin);
+    flagbox.value = values[4]; if (flagbox.value) toggle(document.getElementById("tg-flags"), flagbox);
+    for (var x of values[5]) {
       add_argument("#base", x);
     }
+    if (values[5].length) toggle(document.getElementById("tg-clas"), document.getElementById("clas"));
     output.value = format();
   }
 
@@ -122,20 +140,25 @@ $(document).ready(e => {
   });
 
   $("#run").on("click", e => {
-    document.location = url();
     execute_code();
-  })
+  });
 
   $("#link").on("click", e => {
     document.location = url();
-    outlabel.innerHTML = "Stack Exchange post format";
+    outlabel.innerHTML = outlabel.innerHTML[0] + " Stack Exchange post format";
     output.value = format();
     updateHeight(output);
   });
 
   $("#inline").on("click", e => {
     document.location = url();
-    outlabel.innerHTML = "Inline markdown format";
+    outlabel.innerHTML = outlabel.innerHTML[0] + " Inline markdown format";
     output.value = "[Try it online!](" + document.location + ")";
+  });
+
+  $(".toggler").on("click", e => {
+    var t = e.target;
+    var u = document.getElementById(e.target.getAttribute("data-target"));
+    toggle(t, u);
   });
 });

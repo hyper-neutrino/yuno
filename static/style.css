@@ -84,3 +84,11 @@ button:active {
 .rmbutton {
   float: right;
 }
+
+.toggler {
+  cursor: default;
+}
+
+.toggler:hover {
+  color: white;
+}

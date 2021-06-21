@@ -15,6 +15,7 @@ let hyper = x => x.length == 1;
 
 let memoize = x => (cache => ({
   "type": "sequence",
+  "length": x.length,
   "call": i => cache[i] === undefined ? cache[i] = x.call(i) : cache[i]
 }))({});
 
@@ -163,8 +164,8 @@ let _ln = x => {
   }
 };
 
-let floor = x => Math.floor(Number(x));
-let ceil = x => Math.ceil(Number(x));
+let floor = x => typeof x == "bigint" ? x : Math.floor(Number(x));
+let ceil = x => typeof x == "bigint" ? x : Math.ceil(Number(x));
 
 let _neg = x => ({
   "type": "number",
@@ -224,21 +225,31 @@ let _neg_inf_range = start => ({
   "call": x => yunoify(SUB(start, ADD(x, 1)))
 });
 
-let _swap_re_im = x => ({
+let _ext_re = x => ({
   "type": "number",
-  "value": [x.value[1], x.value[0]]
+  "value": [(x.value || x)[0], 0n]
 });
 
-let _map = (f, s) => ({
+let _ext_im = x => ({
+  "type": "number",
+  "value": [0n, (x.value || x)[1]]
+});
+
+let _swap_re_im = x => ({
+  "type": "number",
+  "value": [(x.value || x)[1], (x.value || x)[0]]
+});
+
+let _map = (f, s) => memoize({
   "type": "sequence",
   "length": s.length,
   "call": x => f(s.call(x))
 });
 
-let _cartesian_product = (x, y, f = (a, b) => list_to_func([a, b])) => ({
+let _cartesian_product = (x, y, f = (a, b) => list_to_func([a, b])) => memoize({
   "type": "sequence",
   "length": x.length,
-  "call": i => ({
+  "call": i => memoize({
     "type": "sequence",
     "length": y.length,
     "call": j => f(x.call(i), y.call(j))
@@ -255,10 +266,46 @@ function range(start, end, step) {
   return ret;
 }
 
+function arbitrary_range(start, end, open_excl, close_excl) {
+  start = start.value || start;
+  end = end.value || end;
+
+  start = start.map(floor);
+  end = end.map(floor);
+
+  if (start[1] == 0 && end[1] == 0) {
+    var out = [];
+    for (var x = start[0]; x != end[0]; x = ADD(x, LT(start[0], end[0]) ? 1n : -1n)) {
+      out.push(x);
+    }
+    if (open_excl) {
+      out.splice(0, 1);
+    }
+    if (!close_excl) {
+      out.push(end[0]);
+    }
+    return yunoify(out);
+  } else if (start[0] == 0 && end[0] == 0) {
+    return _map(_swap_re_im, arbitrary_range(_swap_re_im(start), _swap_re_im(end), open_excl, close_excl));
+  } else {
+    return _cartesian_product(arbitrary_range(_ext_re(start), _ext_re(end), open_excl, close_excl), arbitrary_range(_ext_im(start), _ext_im(end), open_excl, close_excl), _add);
+  }
+}
+
+let to_real_num = x => x.type == "number" ? x.value[0] : [fail("attempted to convert invalid object to a real number; check the console"), console.log(x)];
+
 let verbs = {
+  "α": {
+    "arity": 0,
+    "call": (x, y) => yunoify("yuno by hyper-neutrino")
+  },
   "ι": {
     "arity": 0,
     "call": (x, y) => _inf_range(1n)
+  },
+  "ω": {
+    "arity": 0,
+    "call": (x, y) => list_to_func([])
   },
   "*": {
     "arity": 2,
@@ -280,6 +327,10 @@ let verbs = {
     "arity": 2,
     "call": (x, y) => list_to_func([x, y])
   },
+  "L": {
+    "arity": 1,
+    "call": x => x.type == "sequence" ? yunoify(x.length === undefined ? Infinity : BigInt(x.length)) : yunoify(BigInt(to_real_str(x).length))
+  },
   "R": {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _range(x, "upper") : _char_range("A", x))
@@ -290,6 +341,30 @@ let verbs = {
       (y.type == "number" ? _sub(x, y) : _cpshift(y, x))
     : (y.type == "number" ? _cpshift(x, _neg(y)) : fail("`_` not implemented on chr, chr")))
   },
+  "r": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? arbitrary_range(x, y, false, false) : fail("`r` not implemented on num, chr"))
+    : (y.type == "number" ? fail("`r` not implemented on chr, num") : _map(x => ynchar(codepage[floor(Number(x.value[0]))]), arbitrary_range(yunoify(codepage.indexOf(x.value)), yunoify(codepage.indexOf(y.value))))))
+  },
+  "ɹ": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? arbitrary_range(x, y, true, true) : fail("`r` not implemented on num, chr"))
+    : (y.type == "number" ? fail("`r` not implemented on chr, num") : ((x, y) => _map(x => ynchar(codepage[floor(Number(x.value[0])) % 256]), arbitrary_range(yunoify(x > y ? x : x + 256), yunoify(x > y ? y + 256 : y))))(codepage.indexOf(x.value), codepage.indexOf(y.value))))
+  },
+  "ɻ": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? arbitrary_range(x, y, true, false) : fail("`r` not implemented on num, chr"))
+    : (y.type == "number" ? fail("`r` not implemented on chr, num") : fail("`r` not implemented on chr, chr")))
+  },
+  "ɽ": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? arbitrary_range(x, y, false, true) : fail("`r` not implemented on num, chr"))
+    : (y.type == "number" ? fail("`r` not implemented on chr, num") : fail("`r` not implemented on chr, chr")))
+  },
   "ɾ": {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _range(x, "outer") : _char_range("Γ", x))
@@ -298,9 +373,13 @@ let verbs = {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _range(x, "inner") : _char_range("!", x))
   },
+  "ᴋH": {
+    "arity": 0,
+    "call": () => yunoify("Hello, World!")
+  },
   "ᴍA": {
     "arity": 2,
-    "call": (x, y) => ({
+    "call": (x, y) => memoize({
       "type": "sequence",
       "call": i => verbs["+"].call(x, verbs["×"].call(y, {
         "type": "number",
@@ -310,7 +389,7 @@ let verbs = {
   },
   "ᴍG": {
     "arity": 2,
-    "call": (x, y) => ({
+    "call": (x, y) => memoize({
       "type": "sequence",
       "call": i => verbs["×"].call(x, verbs["*"].call(y, {
         "type": "number",
@@ -385,7 +464,18 @@ let verbs = {
   },
 }
 
+let absref = arity => ({
+  "condition": hyper,
+  "call": (links, outers, index) => ({
+    "arity": Math.max(links[0].arity, arity),
+    "call": (x, y) => evaluate(outers[(x => x >= index ? x + 1 : x)(modulo(floor(Number(to_real_num(evaluate([links[0]], links[0].arity, x, y)))) - 1, outers.length - 1))], arity, x, y)
+  })
+});
+
 let adverbs = {
+  "φ": absref(0),
+  "χ": absref(1),
+  "ψ": absref(2),
   "@": {
     "condition": hyper,
     "call": (links, outers, index) => ({
@@ -469,7 +559,7 @@ function vectorize(call, left, right, config) {
   if (do_left) {
     if (do_right) {
       if (strategy == "default") {
-        return ((x, y, call, config, length = x.length === undefined || y.length === undefined ? undefined : Math.max(x.length, y.length)) => ({
+        return ((x, y, call, config, length = x.length === undefined || y.length === undefined ? undefined : Math.max(x.length, y.length)) => memoize({
           "type": "sequence",
           "call": index => {
             if (length === undefined) {
@@ -490,7 +580,7 @@ function vectorize(call, left, right, config) {
           "length": length
         }))(left, right, call, new_config);
       } else if (strategy == "cut") {
-        return ((x, y, call, config, length = x.length === undefined ? y.length === undefined ? undefined : y.length : y.length === undefined ? x.length : Math.min(x.length, y.length)) => ({
+        return ((x, y, call, config, length = x.length === undefined ? y.length === undefined ? undefined : y.length : y.length === undefined ? x.length : Math.min(x.length, y.length)) => memoize({
           "type": "sequence",
           "call": index => {
             if (length !== undefined) index = indexmod(index, length);
@@ -499,7 +589,7 @@ function vectorize(call, left, right, config) {
           "length": length
         }))(left, right, call, new_config);
       } else if (strategy == "wrap") {
-        return ((x, y, call, config, length = x.length === undefined || y.length === undefined ? undefined : Math.max(x.length, y.length)) => ({
+        return ((x, y, call, config, length = x.length === undefined || y.length === undefined ? undefined : Math.max(x.length, y.length)) => memoize({
           "type": "sequence",
           "call": index => {
             if (length !== undefined) index = indexmod(index, length);
@@ -511,7 +601,7 @@ function vectorize(call, left, right, config) {
         throw "unknown vectorization strategy \"" + strategy + "\"";
       }
     } else {
-      return ((x, y, call, config) => ({
+      return ((x, y, call, config) => memoize({
         "type": "sequence",
         "call": index => vectorize(call, x.call(index), y, config),
         "length": x.length
@@ -519,7 +609,7 @@ function vectorize(call, left, right, config) {
     }
   } else {
     if (do_right) {
-      return ((x, y, call, config) => ({
+      return ((x, y, call, config) => memoize({
         "type": "sequence",
         "call": index => vectorize(call, x, y.call(index), config),
         "length": y.length
@@ -539,11 +629,11 @@ function clone(a) {
 }
 
 function list_to_func(x) {
-  return {
+  return memoize({
     "type": "sequence",
     "length": x.length,
     "call": (a => i => a[modulo(i - 1, a.length)])(x)
-  }
+  })
 }
 
 function func_to_list(x) {
@@ -983,8 +1073,8 @@ function yuno_output(val, end = "", force = false) {
 }
 
 function evaluate(chain, arity, x, y) {
-  verbs["⁸"].call = (x => () => x)(x === undefined ? ynchar("\n") : x);
-  verbs["⁹"].call = (x => () => x)(x === undefined ? ynchar(" ") : y);
+  verbs["α"].call = (x => () => x)(x === undefined ? yunoify("yuno by hyper-neutrino") : x);
+  verbs["ω"].call = (x => () => x)(x === undefined ? yunoify([]) : y);
 
   chain = chain.slice();
   var value;
@@ -1103,7 +1193,7 @@ function execute(code, args, input, print_func, error, flags = {}) {
   args = args.map(tryeval);
   var defaults = [yunoify(16n), yunoify(100n), yunoify(10n), yunoify(64n), yunoify(256n), ynchar("\n"), ynchar(" ")];
   for (var index = 0; index < 7; index++) {
-    verbs["³⁴⁵⁶⁷⁸⁹"[index]].call = (x => () => x)(index < args.length && index < 5 ? args[index] : defaults[index]);
+    verbs["³⁴⁵⁶⁷⁸⁹"[index]].call = (x => () => x)(index < args.length ? args[index] : defaults[index]);
   }
   filtered = "";
   for (var char of code) {

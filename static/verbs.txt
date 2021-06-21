@@ -2,21 +2,29 @@
 
 nilads
 ------
+α                                  left argument, or 'yuno'
 ι                                  [1, 2, 3, ...]
-³                                  1st argument, or 16
-⁴                                  2nd argument, or 100
-⁵                                  3rd argument, or 10
-⁶                                  4th argument, or 64
-⁷                                  5th argument, or 256
-⁸                                  left argument, or '\n'
-⁹                                  right argument, or ' '
+ω                                  right argument, or []
+³                                  1st argument, or '\n'
+⁴                                  2nd argument, or ' '
+⁵                                  3rd argument, or 64
+⁶                                  4th argument, or 16
+⁷                                  5th argument, or 100
+⁸                                  6th argument, or 256
+⁹                                  7th argument, or 10
 
 math nilads
 -----------
 ᴍI                                 infinity
 
+string nilads
+-------------
+ᴋH                                 "Hello, World!"
+
 monads
 ------
+L   (z: num)                       Stringified length
+    (z: any)                       Length
 R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z + 1]
     (z: im )                       Upper range; [i, 2i, ..., z] or [0, -i, ..., z + i]
     (z: cmp)                       Cartesian product over sum of the above
@@ -55,6 +63,22 @@ _   (x: num, y: num)               x - y; subtraction; minus
     (x: chr, y: num)               chr(ord(x) - y); caesar cipher (ignores complex component)
     (x: num, y: chr)               chr(ord(y) + x); caesar cipher (ignores complex component)
     (x: chr, y: chr)               ?
+r   (x: num, y: num)               Inclusive Range (re, re => [re]; im, im => [im]; otherwise => cartesian product over +)
+    (x: chr, y: num)               ?
+    (x: num, y: chr)               ?
+    (x: chr, y: chr)               Character Range
+ɹ   (x: num, y: num)               Exclusive Range (re, re => [re]; im, im => [im]; otherwise => cartesian product over +)
+    (x: chr, y: num)               ?
+    (x: num, y: chr)               ?
+    (x: chr, y: chr)               Inverted (Wrapping) Character Range
+ɻ   (x: num, y: num)               Exclusive, Inclusive Range (re, re => [re]; im, im => [im]; otherwise => cartesian product over +)
+    (x: chr, y: num)               ?
+    (x: num, y: chr)               ?
+    (x: chr, y: chr)               Backward (Wrapping) Character Range
+ɽ   (x: num. y: num)               Inclusive, Exclusive Range (re, re => [re]; im, im => [im]; otherwise => cartesian product over +)
+    (x: chr, y: num)               ?
+    (x: num, y: chr)               ?
+    (x: chr, y: chr)               Forward (Wrapping) Character Range
 ×   (x: num, y: num)               x * y; multiplication; times
     (x: str, y: num)               pad right to up to y with spaces
     (x: num, y: str)               pad left to up to y with spaces

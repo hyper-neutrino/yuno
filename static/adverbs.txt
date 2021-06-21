@@ -12,6 +12,9 @@ link references
 
 hypers
 ------
+φ              <link>φ             Nth link as a nilad
+χ              <link>χ             Nth link as a monad
+ψ              <link>ψ             Nth link as a dyad
 @              <link>@             swap arguments
                                    for monads, convert to a dyad and use the right argument
                                    for nilads, convert to a dyad and ignore the arguments

@@ -23,27 +23,41 @@
     <main>
       <div class="container">
         <br />
-        <h2>yuno online interpeter</h2>
-        <p><a href="https://github.com/hyper-neutrino/yuno">yuno</a> is a tacit golfing language inspired by APL and Jelly. <a href="/verbs">verbs</a>, <a href="/adverbs">adverbs</a>, <a href="/builtins">builtins</a></p><br />
+        <span style="font-size:120%"><b>yuno online interpreter</b>. <a href="/verbs">verbs</a>, <a href="/adverbs">adverbs</a>, <a href="/builtins">builtins</a></span><br />
 
         <br />
-        <b>Code</b>
-        <textarea id="code" class="input"></textarea>
-        <br /><br />
+        <b id="tg-header" class="toggler" data-target="header">▸ Header</b>
+        <br />
+        <textarea id="header" class="input" hidden></textarea>
+        <br />
 
-        <b>STDIN</b>
+        <b id="tg-code" class="toggler" data-target="code">▸ Code</b>
+        <br />
+        <textarea id="code" class="input" hidden></textarea>
+        <br />
+
+        <b id="tg-footer" class="toggler" data-target="footer">▸ Footer</b>
+        <br />
+        <textarea id="footer" class="input" hidden></textarea>
+        <br />
+
+        <b id="tg-stdin" class="toggler" data-target="stdin">▸ STDIN</b>
         <input id="promptinstead" type="checkbox" />
         <label for="promptinstead">Prompt instead of reading from this textarea</label>
-        <textarea id="stdin" class="input"></textarea>
+        <br />
+        <textarea id="stdin" class="input" hidden></textarea>
+        <br />
+
+        <b id="tg-clas" class="toggler" data-target="clas">▸ Command Line Arguments (newline-separated)</b>
+        <div id="clas" hidden><br />
+          <span id="base" onclick="add_argument('#base')" class="addbutton">+ add</span>
+        </div>
         <br /><br />
 
-        <b>Command Line Arguments (newline-separated)</b><br /><br />
-        <span id="base" onclick="add_argument('#base')" class="addbutton">+ add</span>
-        <br /><br />
-
-        <b>Flags</b>
-        <textarea id="flags" class="input"></textarea>
-        <br /><br />
+        <b id="tg-flags" class="toggler" data-target="flags">▸ Flags</b>
+        <br />
+        <textarea id="flags" class="input" hidden></textarea>
+        <br />
 
         <button id="run">
           RUN
@@ -54,13 +68,13 @@
         <button id="inline">
           LINK &amp; FORMAT INLINE MD
         </button>
-        <br /><br /><br />
+        <br /><br />
 
-        <b id="outlabel">Stack Exchange post format</b>
+        <b id="tg-output" class="toggler" data-target="output">▾ Stack Exchange post format</b>
         <textarea id="output" class="input wrap" readonly></textarea>
         <br /><br />
 
-        <b>STDERR</b>
+        <b id="tg-stderr" class="toggler" data-target="stderr">▾ STDERR</b>
         <textarea id="stderr" class="input wrap" readonly></textarea>
       </div>
     </main>
