@@ -145,12 +145,15 @@ $(document).ready(e => {
       if (elem.readonly || !$(elem).is(".input")) return;
       if (elem.selectionStart != elem.selectionEnd) return;
       var pos = elem.selectionStart;
+      var mx = "";
       for (var di of Object.keys(shortcuts)) {
         if (pos >= di.length && elem.value.substring(pos - di.length, pos) == di) {
-          elem.value = elem.value.substring(0, pos - di.length) + shortcuts[di] + elem.value.substring(pos);
-          elem.selectionStart = elem.selectionEnd = pos - di.length + shortcuts[di].length;
-          break;
+          mx = mx.length > di.length ? mx : di;
         }
+      }
+      if (mx.length) {
+        elem.value = elem.value.substring(0, pos - mx.length) + shortcuts[mx] + elem.value.substring(pos);
+        elem.selectionStart = elem.selectionEnd = pos - mx.length + shortcuts[mx].length;
       }
     }
   });

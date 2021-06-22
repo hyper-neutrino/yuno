@@ -11,7 +11,7 @@ let shortcuts = {
   "Xi": "Ξ",
   "Pi": "Π",
   "EE": "Σ",
-  "Sum": "Σ",
+  "sum": "Σ",
   "Sigma": "Σ",
   "O|": "Φ",
   "Phi": "Φ",

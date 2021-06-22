@@ -141,6 +141,10 @@ let _mod = (x, y) => ({
 });
 
 let _exp = (x, y) => {
+  if (y.value[0] == 0 && y.value[1] == 0) return yunoify(1);
+  if (x.value[0] == 1 && x.value[1] == 0) return yunoify(1);
+  if (y.value[0] == 1 && y.value[1] == 0) return x;
+  if (x.value[0] == 0 && x.value[1] == 0) return yunoify(0);
   if (x.value[1] == 0 && y.value[1] == 0) {
     if (y.value[0] >= 0) {
       return {
@@ -153,6 +157,10 @@ let _exp = (x, y) => {
         "value": [Number(x.value[0]) ** Number(y.value[0]), 0n]
       };
     }
+  } else if (y.value[1] == 0 && MOD(y.value[0], 1) == 0 && y.value[0] > 0) {
+    var v = x;
+    for (var i = 1; LT(i, y.value[0]); i++) v = _mul(v, x);
+    return v;
   } else {
     var v = _ln(x);
     var c = _mul(v, y);
@@ -307,6 +315,24 @@ let _reduce = (x, f, d) => {
     return v;
   }
 }
+
+let _cumreduce = (x, f, d) => {
+  if (x.type == "number") x = _implicit_range(x);
+  if (x.type == "character") x = list_to_func([x]);
+  var cache = [];
+  return memoize({
+    "type": "sequence",
+    "length": x.length,
+    "call": index => {
+      if (index <= 0 && x.length === undefined) throw "cannot get elements left of the origin of infinite-length cumulative reduce sequences";
+      index = modulo(index, x.length);
+      while (cache.length <= index) {
+        cache.push(f(last(cache), x.call(x.length)));
+      }
+      return cache[index];
+    }
+  });
+};
 
 let _chr = x => ynchar(codepage[floor(Number(x.value[0])) % 256]);
 
@@ -520,6 +546,10 @@ function arbitrary_range(start, end, open_excl, close_excl) {
 let to_real_num = x => x.type == "number" ? x.value[0] : [fail("attempted to convert invalid object to a real number; check the console"), console.log(x)];
 
 let verbs = {
+  "Σ": {
+    "arity": 1,
+    "call": x => _reduce(x, _add, yunoify(0))
+  },
   "α": {
     "arity": 0,
     "call": (x, y) => yunoify("yuno by hyper-neutrino")
@@ -557,6 +587,12 @@ let verbs = {
     "arity": 0,
     "call": (x, y) => list_to_func([])
   },
+  "!": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? yunoify(math.gamma(Number(x.value[0]) + 1)) : fail("`!` not implemented on str"), {
+      "dostring": false
+    })
+  },
   "%": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
@@ -590,6 +626,36 @@ let verbs = {
     "call": vectorized((x, y) => x.type == "number" ?
       (y.type == "number" ? _floordiv(x, y) : fail("`:` not implemented on num, str"))
     : (y.type == "number" ? fail("`:` not implemented on str, num") : fail("`:` not implemented on str, str")), {
+      "dostring": false
+    })
+  },
+  "A": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ?
+      yunoify(x.value[1] == 0 ?
+                x.value[0] > 0 ?
+                  x.value[0]
+                : -x.value[0]
+              : x.value[0] == 0 ?
+                  x.value[1] > 0 ?
+                    x.value[1]
+                  : -x.value[1]
+                : math.sqrt(Number(x.value[0]) ** 2 + Number(x.value[1]) ** 2))
+            : ynchar(x.value.toUpperCase()))
+  },
+  "B": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? verbs["b"].call(x, yunoify(2)) : fail("`B` not implemented on str"), {
+      "dostring": false
+    })
+  },
+  "C": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? _sub(yunoify(1), x) : ynchar(x.value == x.value.toUpperCase() ? x.value.toLowerCase() : x.value.toUpperCase()))
+  },
+  "D": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? verbs["b"].call(x, yunoify(10)) : fail("`D` not implemented on str"), {
       "dostring": false
     })
   },
@@ -672,6 +738,22 @@ let verbs = {
     "arity": 2,
     "call": (x, y) => y
   },
+  "ɵE": {
+    "arity": 0,
+    "call": () => evaluate(last(parse(tokenize(input()))), 0)
+  },
+  "ɵI": {
+    "arity": 0,
+    "call": () => yunoify(input())
+  },
+  "ɵN": {
+    "arity": 1,
+    "call": x => (yuno_output(x, "\n"), x)
+  },
+  "ɵ_": {
+    "arity": 1,
+    "call": x => (yuno_output(x), x)
+  },
   "ɹ": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
@@ -698,27 +780,7 @@ let verbs = {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _range(x, "inner") : _char_range("!", x))
   },
-  "ᴀE": {
-    "arity": 0,
-    "call": () => yunoify(eval(input()))
-  },
-  "ᴀI": {
-    "arity": 0,
-    "call": () => yunoify(input())
-  },
-  "ᴀN": {
-    "arity": 1,
-    "call": x => (yuno_output(x, "\n"), x)
-  },
-  "ᴀY": {
-    "arity": 0,
-    "call": () => evaluate(last(parse(tokenize(input()))), 0)
-  },
-  "ᴀ_": {
-    "arity": 1,
-    "call": x => (yuno_output(x), x)
-  },
-  "ᴍA": {
+  "ᴀA": {
     "arity": 2,
     "call": (x, y) => memoize({
       "type": "sequence",
@@ -728,7 +790,7 @@ let verbs = {
       }))
     })
   },
-  "ᴍG": {
+  "ᴀG": {
     "arity": 2,
     "call": (x, y) => memoize({
       "type": "sequence",
@@ -808,6 +870,16 @@ let verbs = {
     "call": vectorized((x, y) => x.type == "number" ?
       (y.type == "number" ? _div(x, y) : _multiline_divide(y, x))
     : (y.type == "number" ? _multiline_divide(x, y) : yunoify(to_real_str(x).match(to_real_str(y)) || "")), {
+      "dostring": false
+    })
+  },
+  "¬": {
+    "arity": 1,
+    "call": vectorized(x => yunoify(to_bool(x) ? 0 : 1))
+  },
+  "Ϩ": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? _exp(x, yunoify(0.5)) : (y => yunoify([y.substring(0, Math.ceil(y.length / 2)), y.substring(Math.floor(y.length / 2))]))(to_real_str(x)), {
       "dostring": false
     })
   },
@@ -896,6 +968,32 @@ let adverbs = {
       "call": (x, y) => links[0].call(y, x)
     })
   },
+  "/": {
+    "condition": x => x.length == 2 || x.length == 1 && x[0].arity != 0,
+    "call": (links, outers, index) => {
+      if (links.length == 2) {
+        throw "n-wise reduce has not been implemented yet";
+      } else {
+        return {
+          "arity": 1,
+          "call": (x, y) => _reduce(x, links[0].call, yunoify(0))
+        };
+      }
+    }
+  },
+  "\\": {
+    "condition": x => x.length == 2 || x.length == 1 && x[0].arity != 0,
+    "call": (links, outers, index) => {
+      if (links.length == 2) {
+        throw "n-wise overlapping reduce has not been implemented yet";
+      } else {
+        return {
+          "arity": 1,
+          "call": (x, y) => _cumreduce(x, links[0].call, yunoify(0))
+        };
+      }
+    }
+  },
   "`": {
     "condition": hyper,
     "call": (links, outers, index) => ({
@@ -918,6 +1016,25 @@ let adverbs = {
     "call": (links, outers, index) => ({
       "arity": Math.max(links[0].arity, 1),
       "call": (x, y) => _filter(a => !to_bool(links[0].call(a, y)), iter_range(x))
+    })
+  },
+  "ᴀS": {
+    "condition": hyper,
+    "call": (links, outers, index) => ({
+      "arity": links[0].arity,
+      "call": (x, y) => {
+        var cache = [x];
+        return memoize({
+          "type": "sequence",
+          "call": index => {
+            if (index <= 0) throw "cannot get elements left of the origin of mono-directional recursive sequences";
+            while (cache.length < index) {
+              cache.push(links[0].call(last(cache), y));
+            }
+            return cache[index - 1];
+          }
+        });
+      }
     })
   },
   "Ի": linkref(0, -1),
@@ -985,7 +1102,7 @@ function vectorize(call, left, right, config) {
   var do_left = left && left.type == "sequence" && (dostringl || !is_string(left)) && maxdepthl != 0 && depth(left) > invdepthl;
   var do_right = right && right.type == "sequence" && (dostringr || !is_string(right)) && maxdepthr != 0 && depth(right) > invdepthr;
 
-  var new_config = clone(config); new_config.maxdepthl = maxdepthl - 1; new_config.maxdepthr = maxdepthr - 1;
+  var new_config = clone(config); new_config.maxdepthl = maxdepthl ? maxdepthl - 1 : 0; new_config.maxdepthr = maxdepthr ? maxdepthr - 1 : 0;
 
   if (do_left) {
     if (do_right) {
@@ -1134,7 +1251,7 @@ function ynround(x) {
 }
 
 function unparse_number(x) {
-  x = x.value;
+  x = x.value || x;
   a = ynround(x[0]);
   b = ynround(x[1]);
   if (b == 0 || isNaN(Number(a))) {
@@ -1149,7 +1266,15 @@ function unparse_number(x) {
         return b.toString() + "ɪ";
       }
     } else {
-      return a.toString() + "+" + b.toString() + "ɪ";
+      if (b == 1) {
+        return a.toString() + "+ɪ";
+      } else if (b == -1) {
+        return a.toString() + "-ɪ";
+      } else if (b > 0) {
+        return a.toString() + "+" + b.toString() + "ɪ";
+      } else {
+        return a.toString() + b.toString() + "ɪ";
+      }
     }
   }
 }
@@ -1382,7 +1507,8 @@ function tokenize(code) {
       });
       console.log(v);
     } else if (code[index] == "ᴋ") {
-      var v = k_digraphs["ᴋ" + (code[++index] || "H")];
+      if (code[++index] == " ") break;
+      var v = k_digraphs["ᴋ" + (code[index] || "H")];
       if (v === 0) {
         error("warning: literal digraph `ᴋ" + (code[index] || "H") + "` doesn't appear to have been defined yet, so 0 has been returned\n");
       }

@@ -19,14 +19,24 @@ math nilads
 
 I/O nilads
 ----------
-ᴀE                                 read and interpreter-language-evaluate a line of input
-ᴀI                                 read a line of input as a string
-ᴀY                                 read and yuno-evaluate a line of code (niladically)
+ɵE                                 read and evaluate a line of yuno code (niladically)
+ɵI                                 read a line of input as a string
 
 digraph nilads are at /static/various-nilads.txt
 
 monads
 ------
+Σ   (z: any)                       Sum (implicit range)
+!   (z: num)                       Factorial / (+1) . Gamma
+    (z: str)                       ?
+A   (z: num)                       Absolute Value
+    (z: chr)                       Uppercase
+B   (z: num)                       Integer to Base 2; Binary
+    (z: str)                       ?
+C   (z: num)                       Complement; 1 - z
+    (z: chr)                       Flip case; Swap case
+D   (z: num)                       Integer to Base 10; Decimal
+    (z: str)                       ?
 L   (z: num)                       Stringified length
     (z: any)                       Length
 P   (z: num)                       Primality check; Is prime
@@ -52,6 +62,9 @@ R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z
 ¹   (z: any)                       z; identity; z => z
 ²   (z: num)                       z * z; square; squared
     (z: str)                       format z as square
+¬   (z: any)                       logical NOT (vectorizing)
+Ϩ   (z: num)                       square root
+    (z: str)                       divide a string into halves, overlapping if of odd length
 ‘   (z: num)                       z - 1; decrement
     (z: str)                       string decrement
 ’   (z: num)                       z + 1; increment
@@ -63,8 +76,8 @@ math monads
 
 I/O monads
 ----------
-ᴀN  (z: any)                       output z with a trailing newline
-ᴀ_  (z: any)                       output z
+ɵN  (z: any)                       output z with a trailing newline
+ɵ_  (z: any)                       output z
 
 dyads
 -----
@@ -127,7 +140,7 @@ r   (x: num, y: num)               Inclusive Range (re, re => [re]; im, im => [i
     (x: num, y: str)               y / x
     (x: str, y: str)               x.match(y); regex match; regex find
 
-math dyads
-----------
-ᴍA  (x: any, y: any)               Arithmetic Sequence; infinite sequence a => x + y * (a - 1)
-ᴍG  (x: any, y: any)               Geometric Sequence; infinite sequence a => x * y ** (a - 1)
+array/seq dyads
+---------------
+ᴀA  (x: any, y: any)               Arithmetic Sequence; infinite sequence a => x + y * (a - 1)
+ᴀG  (x: any, y: any)               Geometric Sequence; infinite sequence a => x * y ** (a - 1)
