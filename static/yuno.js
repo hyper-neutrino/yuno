@@ -1507,7 +1507,7 @@ function tokenize(code) {
       });
       console.log(v);
     } else if (code[index] == "ᴋ") {
-      if (code[++index] == " ") break;
+      if (code[++index] == " ") continue;
       var v = k_digraphs["ᴋ" + (code[index] || "H")];
       if (v === 0) {
         error("warning: literal digraph `ᴋ" + (code[index] || "H") + "` doesn't appear to have been defined yet, so 0 has been returned\n");
