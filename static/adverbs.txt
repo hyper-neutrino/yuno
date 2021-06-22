@@ -12,7 +12,7 @@ link references
 
 hypers
 ------
-Ξ              <link>Ξ             Filter; keep
+Ξ              <link>Ξ             filter; keep
 φ              <link>φ             Nth link as a nilad
 χ              <link>χ             Nth link as a monad
 ψ              <link>ψ             Nth link as a dyad
@@ -23,11 +23,14 @@ hypers
                                    for dyads, convert to a monad and use the argument on both sides
                                    for monads, convert to a dyad and use the left argument
                                    for nilads, convert to a monad and ignore the argument
-‖              <link>‖             Filter; discard
+‖              <link>‖             filter; discard
 Ͼ              <link>Ͼ             map over the left argument; nilads become monads
 Ͽ              <link>Ͽ             map over the right argument; monads become dyads and use the right argument only (equivalent to <link>Ͼ@)
 ᴍS             <link>ᴍS            custom recursively defined sequence (seq[1] is left argument, seq[x] = f(seq[x - 1]))
 
 combinators
 -----------
+?              <f><g><h>?          if statement; if h, f, otherwise, g (defaults to <f> identity <h> ?) (defaults to 1 0 <h> ?) (defaults to 1 0 identity ?)
 ᴍs             <f><g>ᴍs            custom two-way recursively defined sequence (seq[1] is left argument, seq[x] = f(seq[x + 1]), seq[x] = g(seq[x - 1]))
+¿              <f><g>¿             while loop
+ʔ              <f><g>ʔ             while loop; collects all truthy results (including the initial value)

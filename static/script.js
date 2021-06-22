@@ -30,6 +30,7 @@ let FLAGS = {
   "t": "round_thousandth",
   "M": "memoize_off",
   "_": "cap_off",
+  "W": "cap_tenk",
   "h": "help"
 };
 
@@ -52,7 +53,7 @@ function execute_code() {
   }
   execute((header.value && header.value + "\n") + code.value + (footer.value && "\n" + footer.value), [...$(".argbox>textarea")].map(x => x.value), input, x => {
     output.value += x;
-    if (!flags["cap_off"] && output.value.length > 131072) throw "output has exceeded 128 KB";
+    if (!flags["cap_off"] && output.value.length > (flags["cap_tenk"] ? 10000 : 131072)) throw "output has exceeded 128 KB";
   }, x => stderr.value += x, flags);
   updateHeight(output);
 }
@@ -138,6 +139,19 @@ $(document).ready(e => {
     if (e.ctrlKey && e.keyCode == 13) {
       e.preventDefault();
       execute_code();
+    } else if (e.altKey && e.keyCode == 13) {
+      e.preventDefault();
+      var elem = document.activeElement;
+      if (elem.readonly || !$(elem).is(".input")) return;
+      if (elem.selectionStart != elem.selectionEnd) return;
+      var pos = elem.selectionStart;
+      for (var di of Object.keys(shortcuts)) {
+        if (pos >= di.length && elem.value.substring(pos - di.length, pos) == di) {
+          elem.value = elem.value.substring(0, pos - di.length) + shortcuts[di] + elem.value.substring(pos);
+          elem.selectionStart = elem.selectionEnd = pos - di.length + shortcuts[di].length;
+          break;
+        }
+      }
     }
   });
 

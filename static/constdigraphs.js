@@ -69,7 +69,7 @@ let k_digraphs = {
   "ᴋC": "BCDFGHJKLMNPQRSTVWXZ", // uppercase consonants without Y
   "ᴋD": 0,
   "ᴋE": 0,
-  "ᴋF": 0,
+  "ᴋF": ["Fizz", "Buzz"], // fizz buzz
   "ᴋG": 0,
   "ᴋH": "Hello, World!", // hello world
   "ᴋI": 0,

@@ -25,12 +25,13 @@ var settings = {
 
 var print;
 var error;
+var input;
 
 let fail = x => { throw x; }
 
 let iter_range = x => x.type == "sequence" ? x : x.type == "character" ? list_to_func([x]) : _implicit_range(x);
 
-let depth = x => x.type == "sequence" ? (x.length === undefined || x.length == 0 ? 1 : minimum(func_to_list(x).map(x => depth(x))) + 1) : 0;
+let depth = x => x.type == "sequence" ? (x.length === undefined ? Infinity : x.length == 0 ? 1 : minimum(func_to_list(x).map(x => depth(x))) + 1) : 0;
 let minimum = x => Math.min.apply(null, x);
 let modulo = (x, y) => y == 0 ? NaN : y > 0 ? ADD(REM(x, y), LT(x, 0) ? y : 0) : x % y == 0 ? 0 : (modulo(x, -y) + y);
 let indexmod = (x, y) => modulo(x - 1, y) + 1;
@@ -124,6 +125,19 @@ let _div = (x, y) => ({
         TDV(ADD(MUL(x.value[0], y.value[0]), MUL(x.value[1], y.value[1])), (SUB(EXP(y.value[0], 2), EXP(y.value[1], 2)))),
         TDV(SUB(MUL(x.value[1], y.value[0]), MUL(x.value[0], y.value[1])), SUB(EXP(y.value[0], 2), EXP(y.value[1], 2)))
       ]
+});
+
+let _floordiv = (x, y) => {
+  var q = _div(x, y);
+  return {
+    "type": "number",
+    "value": [floor(q.value[0]), floor(q.value[1])]
+  };
+};
+
+let _mod = (x, y) => ({
+  "type": "number",
+  "value": [MOD(x.value[0], y.value[0]), 0n]
 });
 
 let _exp = (x, y) => {
@@ -278,6 +292,22 @@ let _filter = (f, s) => {
   }
 }
 
+let _reduce = (x, f, d) => {
+  if (x.type == "number") x = _implicit_range(x);
+  if (x.type == "character") x = list_to_func([x]);
+  if (x.length === undefined) {
+    throw "can't reduce an infinite sequence"
+  } else if (x.length == 0) {
+    return d;
+  } else {
+    var v = x.call(1);
+    for (var index = 2; index <= x.length; index++) {
+      v = f(v, x.call(index));
+    }
+    return v;
+  }
+}
+
 let _chr = x => ynchar(codepage[floor(Number(x.value[0])) % 256]);
 
 let _cartesian_product = (x, y, f = (a, b) => list_to_func([a, b])) => memoize({
@@ -337,6 +367,11 @@ let _to_base = (x, y, bj = false) => {
 };
 
 let _to_arbitrary_base = (x, y) => (y => _map(x => yunoify(y[x])), _to_base(yunoify(floor(x.value[0])), yunoify(y.length)))(to_real_str(y));
+
+let _trunc_imag = x => ({
+  "type": "number",
+  "value": [x.value[0], 0n]
+});
 
 let _primeq = x => {
   var F = yunoify(0), T = yunoify(1);
@@ -407,6 +442,34 @@ let _index_into = (x, y) => {
     }
   }
 };
+
+let _string_increment = x => {
+  return yunoify(string_increment(to_real_str(x)));
+}
+
+let _string_decrement = x => {
+  return yunoify(string_decrement(to_real_str(x)));
+}
+
+function string_increment(x) {
+  if (x == "") {
+    return "Γ";
+  } else if (x[x.length - 1] == "”") {
+    return string_increment(x.substring(0, x.length - 1)) + "Γ";
+  } else {
+    return x.substring(0, x.length - 1) + codepage[codepage.indexOf(x[x.length - 1]) + 1];
+  }
+}
+
+function string_decrement(x) {
+  if (x == "" || x == "Γ") {
+    return "";
+  } else if (x[x.length - 1] == "Γ") {
+    return string_decrement(x.substring(0, x.length - 1)) + "”";
+  } else {
+    return x.substring(0, x.length - 1) + codepage[codepage.indexOf(x[x.length - 1]) - 1];
+  }
+}
 
 function to_bool(v) {
   if (v.type == "sequence") {
@@ -494,6 +557,14 @@ let verbs = {
     "arity": 0,
     "call": (x, y) => list_to_func([])
   },
+  "%": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? _mod(_trunc_imag(x), _trunc_imag(y)) : fail("`%` not implemented on num, str"))
+    : (y.type == "number" ? fail("`%` not implemented on str, num") : fail("`%` not implemented on str, str")), {
+      "dostring": false
+    })
+  },
   "*": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
@@ -513,6 +584,14 @@ let verbs = {
   ",": {
     "arity": 2,
     "call": (x, y) => list_to_func([x, y])
+  },
+  ":": {
+    "arity": 2,
+    "call": vectorized((x, y) => x.type == "number" ?
+      (y.type == "number" ? _floordiv(x, y) : fail("`:` not implemented on num, str"))
+    : (y.type == "number" ? fail("`:` not implemented on str, num") : fail("`:` not implemented on str, str")), {
+      "dostring": false
+    })
   },
   "L": {
     "arity": 1,
@@ -585,6 +664,14 @@ let verbs = {
       "maxdepthr": 0
     })
   },
+  "ɲ": {
+    "arity": 2,
+    "call": (x, y) => x
+  },
+  "ɳ": {
+    "arity": 2,
+    "call": (x, y) => y
+  },
   "ɹ": {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
@@ -610,6 +697,26 @@ let verbs = {
   "ʁ": {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _range(x, "inner") : _char_range("!", x))
+  },
+  "ᴀE": {
+    "arity": 0,
+    "call": () => yunoify(eval(input()))
+  },
+  "ᴀI": {
+    "arity": 0,
+    "call": () => yunoify(input())
+  },
+  "ᴀN": {
+    "arity": 1,
+    "call": x => (yuno_output(x, "\n"), x)
+  },
+  "ᴀY": {
+    "arity": 0,
+    "call": () => evaluate(last(parse(tokenize(input()))), 0)
+  },
+  "ᴀ_": {
+    "arity": 1,
+    "call": x => (yuno_output(x), x)
   },
   "ᴍA": {
     "arity": 2,
@@ -637,6 +744,14 @@ let verbs = {
       "type": "number",
       "value": [Infinity, 0n]
     })
+  },
+  "ᴅ": {
+    "arity": 1,
+    "call": x => yunoify(depth(x))
+  },
+  "ᴘ": {
+    "arity": 1,
+    "call": x => _reduce(x, _mul, yunoify(1))
   },
   "ʀ": {
     "arity": 1,
@@ -696,6 +811,18 @@ let verbs = {
       "dostring": false
     })
   },
+  "‘": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? _sub(x, yunoify(1)) : _string_decrement(x), {
+      "dostring": false
+    })
+  },
+  "’": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? _add(x, yunoify(1)) : _string_increment(x), {
+      "dostring": false
+    })
+  }
 }
 
 let absref = arity => ({
@@ -705,6 +832,46 @@ let absref = arity => ({
     "call": (x, y) => evaluate(outers[(x => x >= index ? x + 1 : x)(modulo(floor(Number(to_real_num(evaluate([links[0]], links[0].arity, x, y)))) - 1, outers.length - 1))], arity, x, y)
   })
 });
+
+let _while_loop = (links, keep = false) => links.length == 2 ? {
+  "arity": Math.max(links[0].arity, links[1].arity),
+  "call": (x, y) => {
+    var v = x;
+    var o = [];
+    while (to_bool(links[1].call(v, y))) {
+      if (keep) o.push(v);
+      v = links[0].call(v, y);
+    }
+    return keep ? list_to_func(o) : v;
+  }
+} : {
+  "arity": links[0].arity,
+  "call": (x, y) => {
+    var v = x;
+    var o = [];
+    while (true) {
+      var k = links[0].call(v, y);
+      if (!to_bool(k)) return keep ? list_to_func(o) : v;
+      o.push(v);
+      v = k;
+    }
+  }
+}
+
+let _if_else = links => {
+  if (links.length == 0) {
+    links = [l2v(yunoify(1)).value, l2v(yunoify(0)).value, verbs["¹"]];
+  } else if (links.length == 1) {
+    links = [l2v(yunoify(1)).value, l2v(yunoify(0)).value, links[0]];
+  } else if (links.length == 2) {
+    links = [links[0], verbs["¹"], links[1]];
+  }
+
+  return {
+    "arity": links.map(x => x.arity).reduce((x, y) => Math.max(x, y)),
+    "call": (x, y) => (to_bool(links[2].call(x, y)) ? links[0] : links[1]).call(x, y)
+  };
+};
 
 let adverbs = {
   "Ξ": {
@@ -717,6 +884,11 @@ let adverbs = {
   "φ": absref(0),
   "χ": absref(1),
   "ψ": absref(2),
+  "?": {
+    "condition": x => x.length == 3,
+    "call": (links, outers, index) => _if_else(links),
+    "fail": (links, outers, index) => _if_else(links)
+  },
   "@": {
     "condition": hyper,
     "call": (links, outers, index) => ({
@@ -730,6 +902,16 @@ let adverbs = {
       "arity": links[0].arity == 1 ? 2 : 1,
       "call": (x, y) => links[0].call(x, x)
     })
+  },
+  "¿": {
+    "condition": x => x.length == 2,
+    "call": (links, outers, index) => _while_loop(links),
+    "fail": (links, outers, index) => _while_loop(links)
+  },
+  "ʔ": {
+    "condition": x => x.length == 2,
+    "call": (links, outers, index) => _while_loop(links, true),
+    "fail": (links, outers, index) => _while_loop(links, true)
   },
   "‖": {
     "condition": hyper,
@@ -1258,13 +1440,19 @@ function parse_chain(chain, chains, links, outerindex, stack) {
         inner.splice(0, 0, stack.pop());
       }
       if (adverb.condition(inner)) {
-        var verb = adverb.call(inner, links, outerindex);
-        verb.type = "verb";
-        stack.push(verb);
-      } else if (chain[index].fail) {
-        var verb = adverb.fail(inner, links, outerindex);
-        verb.type = "verb";
-        stack.push(verb);
+        var verbs = adverb.call(inner, links, outerindex);
+        if (!Array.isArray(verbs)) verbs = [verbs];
+        verbs.forEach(verb => {
+          verb.type = "verb";
+          stack.push(verb);
+        })
+      } else if (adverb.fail) {
+        var verbs = adverb.fail(inner, links, outerindex);
+        if (!Array.isArray(verbs)) verbs = [verbs];
+        verbs.forEach(verb => {
+          verb.type = "verb";
+          stack.push(verb);
+        })
       } else {
         throw "adverb failed to meet its condition and does not have a default behavior: `" + chain[index].name + "`";
       }
@@ -1382,7 +1570,7 @@ function yuno_output(val, end = "", force = false, fstring = false) {
 
 function evaluate(chain, arity, x, y) {
   verbs["α"].call = (x => () => x)(x === undefined ? yunoify("yuno by hyper-neutrino") : x);
-  verbs["ω"].call = (x => () => x)(x === undefined ? yunoify([]) : y);
+  verbs["ω"].call = (x => () => x)(y === undefined ? yunoify([]) : y);
 
   chain = chain.slice();
   var value;
@@ -1479,7 +1667,7 @@ function evaluate(chain, arity, x, y) {
   }
 }
 
-function execute(code, args, input, print_func, error_func, flags = {}) {
+function execute(code, args, input_func, print_func, error_func, flags = {}) {
   if (flags.help) {
     print_func("L - force list display (don't print singleton lists as just its element)\n"
              + "T - cap infinite sequence output at 10 elements\n"
@@ -1493,12 +1681,14 @@ function execute(code, args, input, print_func, error_func, flags = {}) {
              + "t - round all numbers to the nearest thousandth\n",
              + "M - don't memoize sequence calls (warning: severe performance degradation is possible)\n"
              + "_ - don't cap output (warning: program may freeze)\n"
+             + "W - cap output at 10 000 characters\n"
              + "h - show this help message");
     return;
   }
   settings = flags;
   print = print_func;
   error = error_func;
+  input = input_func;
   args = args.map(tryeval);
   var defaults = [ynchar("\n"), ynchar(" "), yunoify(64n), yunoify(32n), yunoify(100n), yunoify(256n), yunoify(10n)];
   for (var index = 0; index < 7; index++) {

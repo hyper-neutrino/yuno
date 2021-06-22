@@ -17,6 +17,12 @@ math nilads
 -----------
 ᴍI                                 infinity
 
+I/O nilads
+----------
+ᴀE                                 read and interpreter-language-evaluate a line of input
+ᴀI                                 read a line of input as a string
+ᴀY                                 read and yuno-evaluate a line of code (niladically)
+
 digraph nilads are at /static/various-nilads.txt
 
 monads
@@ -29,6 +35,8 @@ R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z
     (z: im )                       Upper range; [i, 2i, ..., z] or [0, -i, ..., z + i]
     (z: cmp)                       Cartesian product over sum of the above
     (z: chr)                       Character range from "A"
+ᴅ   (z: any)                       Depth
+ᴘ   (z: any)                       Product (implicit range)
 ʀ   (z: re )                       Lower range; [0, 1, ..., z - 1] or [-1, -2, ..., z]
     (z: im )                       Lower range; [0, i, ..., z - i] or [-i, -2i, ..., z]
     (z: cmp)                       Cartesian product over sum of the above
@@ -44,15 +52,29 @@ R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z
 ¹   (z: any)                       z; identity; z => z
 ²   (z: num)                       z * z; square; squared
     (z: str)                       format z as square
+‘   (z: num)                       z - 1; decrement
+    (z: str)                       string decrement
+’   (z: num)                       z + 1; increment
+    (z: str)                       string increment
 
 math monads
 -----------
+
+
+I/O monads
+----------
+ᴀN  (z: any)                       output z with a trailing newline
+ᴀ_  (z: any)                       output z
 
 dyads
 -----
 β   (x: [n], y: num)               convert x from base y (x => [x] if necessary)
     (x: str, y: num)               convert x from base y up to 36
     (x: num, y: str)               convert y from base x up to 36
+    (x: str, y: str)               ?
+%   (x: num, y: num)               modulo (python-style) (removes complex component)
+    (x: str, y: num)               ?
+    (x: num, y: str)               ?
     (x: str, y: str)               ?
 *   (x: num, y: num)               x ** y; exponentiation; power
     (x: str, y: num)               ?
@@ -62,7 +84,11 @@ dyads
     (x: str, y: num)               x + y.toString(); concatenation
     (x: num, y: str)               x.toString() + y; concatenation
     (x: str, y: str)               x + y; concatenation
-,   (x: any, y: any)               [x, y]; pair; (x, y) => [x, y]
+,   (x: any, y: any)               [x, y]; pair; (x, y) => [x, y
+:   (x: num, y: num)               x // y; floor division; floor divide
+    (x: str, y: num)               ?
+    (x: num, y: str)               ?
+    (x: str, y: str)               ?
 _   (x: num, y: num)               x - y; subtraction; minus
     (x: chr, y: num)               chr(ord(x) - y); caesar cipher (ignores complex component)
     (x: num, y: chr)               chr(ord(y) + x); caesar cipher (ignores complex component)
@@ -78,6 +104,8 @@ r   (x: num, y: num)               Inclusive Range (re, re => [re]; im, im => [i
     (x: chr, y: chr)               Character Range
 ɨ   (x: num, y: [ ])               find the element at index x of y; if x is complex, at real(x) and imag(x); if x is a decimal, at floor(x) and ceil(x)
     (x: chr, y: [ ])               ?
+ɲ   (x: any, y: any)               x; left argument
+ɳ   (x: any, y: any)               y; right argument
 ɹ   (x: num, y: num)               Exclusive Range (re, re => [re]; im, im => [im]; otherwise => cartesian product over +)
     (x: chr, y: num)               ?
     (x: num, y: chr)               ?
