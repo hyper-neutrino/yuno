@@ -13,6 +13,7 @@ link references
 hypers
 ------
 Ξ              <link>Ξ             filter; keep
+υ              <link>υ             deep recurse, apply to strings as objects not lists
 φ              <link>φ             Nth link as a nilad
 χ              <link>χ             Nth link as a monad
 ψ              <link>ψ             Nth link as a dyad

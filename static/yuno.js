@@ -945,6 +945,14 @@ let _if_else = links => {
   };
 };
 
+let _deep_recurse = links => {
+  let fl = (x, y) => x.type == "sequence" ? links[0].call(_map(x => fl(x), x), y) : x;
+  return {
+    "arity": Math.max(links[0].arity, 1),
+    "call": fl
+  };
+};
+
 let adverbs = {
   "Ξ": {
     "condition": hyper,
@@ -952,6 +960,10 @@ let adverbs = {
       "arity": Math.max(links[0].arity, 1),
       "call": (x, y) => _filter(a => to_bool(links[0].call(a, y)), iter_range(x))
     })
+  },
+  "υ": {
+    "condition": hyper,
+    "call": (links, outers, index) => _deep_recurse(links)
   },
   "φ": absref(0),
   "χ": absref(1),
