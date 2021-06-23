@@ -25,12 +25,15 @@ let FLAGS = {
   "O": "ir_outer",
   "I": "ir_inner",
   "j": "ioj_newline",
-  "k": "ioj_space",
+  "s": "ioj_space",
   "d": "ioj_off",
   "t": "round_thousandth",
   "M": "memoize_off",
   "_": "cap_off",
+  "K": "cap_k",
+  "k": "seq_k",
   "W": "cap_tenk",
+  "w": "seq_tenk",
   "h": "help"
 };
 
@@ -52,8 +55,10 @@ function execute_code() {
     flags[FLAGS[x]] = flagbox.value.indexOf(x) != -1;
   }
   execute((header.value && header.value + "\n") + code.value + (footer.value && "\n" + footer.value), [...$(".argbox>textarea")].map(x => x.value), input, x => {
+    var limit = flags["cap_k"] ? 1000 : flags["cap_tenk"] ? 10000 : 131072;
     output.value += x;
-    if (!flags["cap_off"] && output.value.length > (flags["cap_tenk"] ? 10000 : 131072)) throw "output has exceeded 128 KB";
+    output.value = output.value.substring(0, limit);
+    if (!flags["cap_off"] && output.value.length >= limit) throw "output has exceeded the limit";
   }, x => stderr.value += x, flags);
   updateHeight(output);
 }

@@ -13,9 +13,10 @@ nilads
 ⁸                                  6th argument, or 256
 ⁹                                  7th argument, or 10
 
-math nilads
------------
+math/misc nilads
+----------------
 ᴍI                                 infinity
+ᴍX                                 Math.random()
 
 I/O nilads
 ----------
@@ -37,8 +38,11 @@ C   (z: num)                       Complement; 1 - z
     (z: chr)                       Flip case; Swap case
 D   (z: num)                       Integer to Base 10; Decimal
     (z: str)                       ?
+E   (z: any)                       All Equal? (implicit stringify)
 L   (z: num)                       Stringified length
     (z: any)                       Length
+N   (z: num)                       Negate; -z
+    (z: chr)                       ?
 P   (z: num)                       Primality check; Is prime
     (z: chr)                       ?
 R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z + 1]
@@ -70,9 +74,10 @@ R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z
 ’   (z: num)                       z + 1; increment
     (z: str)                       string increment
 
-math monads
------------
-
+math/misc monads
+----------------
+ᴀR  (z: num)                       Mirrored Range; equivalent to (Nr)
+    (z: chr)                       ?
 
 I/O monads
 ----------
@@ -115,6 +120,7 @@ r   (x: num, y: num)               Inclusive Range (re, re => [re]; im, im => [i
     (x: chr, y: num)               ?
     (x: num, y: chr)               ?
     (x: chr, y: chr)               Character Range
+ɐ   (x: [ ], y: [ ])               sublist index; find the position of sublist x in y (implicit digits)
 ɨ   (x: num, y: [ ])               find the element at index x of y; if x is complex, at real(x) and imag(x); if x is a decimal, at floor(x) and ceil(x)
     (x: chr, y: [ ])               ?
 ɲ   (x: any, y: any)               x; left argument

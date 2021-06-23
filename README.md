@@ -3,7 +3,7 @@ yuno is a tacit golfing language inspired by other array languages and tacit lan
 
 ## stage 1 - tokenization
 
-These tokens can be matched greedily. Characters that are not in the codepage should be removed.
+These tokens can be matched greedily. Characters that are not in the codepage should be removed. If a line ends with `ᴋ`, it should continue to the next line, even in line comments.
 
 If the first character is `“`, begin reading a string literal. Any character other than `«»‘’“”` should be appended to the string literal.
 - if `“` is encountered, the literal now becomes a list of strings
@@ -28,7 +28,7 @@ If the first character is any of `0123456789-.ɪʙᴇғ`, begin reading a number
 - `{number: mantissa}ᴇ{number: exponent}` is an exponential literal - `mantissa * 10 ^ exponent` (default `1ᴇ3`)
 - `{number: real}ɪ{number: imaginary}` is a complex literal - `real + imaginary * i` (default `0ɪ1`)
 
-List literals are parsed via stranding - that is, placing multiple literals one after another joins them into a list. `[` and `]` should auto-balance via prepending or appending matching brackets if necessary.
+List literals are parsed via stranding - that is, placing multiple literals one after another joins them into a list. `[` and `]` should auto-balance via prepending or appending matching brackets if necessary. `ǂ` should break literals apart but otherwise do nothing in the code.
 
 If a verb or adverb is identified, add it as a token.
 

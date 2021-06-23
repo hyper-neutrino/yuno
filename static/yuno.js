@@ -16,7 +16,7 @@ let hyper = x => x.length == 1;
 let memoize = x => (cache => ({
   "type": "sequence",
   "length": x.length,
-  "call": i => cache[i] === undefined ? cache[i] = x.call(i) : cache[i]
+  "call": i => (settings.seq_k && (LT(i, -1000) || GT(i, 1000)) || settings.seq_tenk && (LT(i, -10000) || GT(i, 10000))) ? fail("sequence access forced out of bounds") : cache[i] === undefined || settings.memoize_off ? cache[i] = x.call(i) : cache[i]
 }))({});
 
 var settings = {
@@ -33,7 +33,7 @@ let iter_range = x => x.type == "sequence" ? x : x.type == "character" ? list_to
 
 let depth = x => x.type == "sequence" ? (x.length === undefined ? Infinity : x.length == 0 ? 1 : minimum(func_to_list(x).map(x => depth(x))) + 1) : 0;
 let minimum = x => Math.min.apply(null, x);
-let modulo = (x, y) => y == 0 ? NaN : y > 0 ? ADD(REM(x, y), LT(x, 0) ? y : 0) : x % y == 0 ? 0 : (modulo(x, -y) + y);
+let modulo = (x, y) => y == 0 ? NaN : y > 0 ? REM(ADD(REM(x, y), LT(x, 0) ? y : 0), y) : -modulo(-x, y);
 let indexmod = (x, y) => modulo(x - 1, y) + 1;
 
 let nn = f => (x, y) => {
@@ -280,14 +280,14 @@ let _filter = (f, s) => {
     return {
       "type": "sequence",
       "call": x => {
-        if (x >= 1) {
-          while (record.length < x) {
+        if (GE(x, 1)) {
+          while (LT(record.length, x)) {
             var v = s.call(fscan++);
             if (f(v)) record.push(v);
           }
-          return record[x - 1];
+          return record[SUB(x, 1)];
         } else {
-          while (inverted.length <= x) {
+          while (LE(inverted.length, x)) {
             var v = s.call(bscan--);
             if (f(v)) inverted.push(v);
           }
@@ -319,17 +319,17 @@ let _reduce = (x, f, d) => {
 let _cumreduce = (x, f, d) => {
   if (x.type == "number") x = _implicit_range(x);
   if (x.type == "character") x = list_to_func([x]);
-  var cache = [];
+  var cache = [x.call(1)];
   return memoize({
     "type": "sequence",
     "length": x.length,
     "call": index => {
-      if (index <= 0 && x.length === undefined) throw "cannot get elements left of the origin of infinite-length cumulative reduce sequences";
-      index = modulo(index, x.length);
-      while (cache.length <= index) {
-        cache.push(f(last(cache), x.call(x.length)));
+      if (LE(index, 0) && x.length === undefined) throw "cannot get elements left of the origin of infinite-length cumulative reduce sequences";
+      index = indexmod(index, x.length);
+      while (LE(cache.length, index)) {
+        cache.push(f(last(cache), x.call(cache.length + 1)));
       }
-      return cache[index];
+      return cache[SUB(index, 1)];
     }
   });
 };
@@ -462,7 +462,9 @@ let _index_into = (x, y) => {
     }
   } else {
     if (MOD(x, 1) == 0) {
-      return y.call(Number(x));
+      if (y.length === undefined) return y.call(x);
+      if (y.length == 0) return yunoify(0);
+      return y.call(Number(ADD(MOD(SUB(x, 1), y.length), 1)));
     } else {
       return [_index_into(floor(x), y), _index_into(ceil(x), y)];
     }
@@ -475,6 +477,43 @@ let _string_increment = x => {
 
 let _string_decrement = x => {
   return yunoify(string_decrement(to_real_str(x)));
+}
+
+let _all_equal = x => {
+  if (x.length === undefined) throw "cannot check if all elements of an infinite sequence are equal";
+  if (x.length == 0) return yunoify(1);
+  var v = x.call(1);
+  for (var index = 2; index <= x.length; index++) {
+    console.log(v, x.call(index));
+    if (!_EQ(v, x.call(index))) return yunoify(0);
+  }
+  return yunoify(1);
+}
+
+let _sublist_index = (x, y) => {
+  if (x.type == "character") x = list_to_func([x]);
+  if (y.type == "character") y = list_to_func([y]);
+
+  if (x.type == "number") x = _to_base(x, yunoify(10));
+  if (y.type == "number") y = _to_base(y, yunoify(10));
+
+  if (x.length === undefined) return yunoify(0);
+
+  if (x.length > y.length) return yunoify(0);
+
+  if (is_string(x) && is_string(y)) return yunoify(to_real_str(y).indexOf(to_real_str(x)) + 1);
+
+  var block = [...Array(x.length)].map((_, i) => y.call(i + 1));
+
+  for (var index = 1; index <= (y.length === undefined ? Infinity : y.length - x.length + 1); index++) {
+    if (block.every((k, i) => _EQ(k, x.call(i + 1)))) {
+      return yunoify(index);
+    }
+    block = block.slice(1);
+    block.push(y.call(index + x.length));
+  }
+
+  return yunoify(0);
 }
 
 function string_increment(x) {
@@ -659,9 +698,17 @@ let verbs = {
       "dostring": false
     })
   },
+  "E": {
+    "arity": 1,
+    "call": x => x.type == "character" ? yunoify(1) : _all_equal(x.type == "number" ? yunoify(unparse_number(x)) : x)
+  },
   "L": {
     "arity": 1,
     "call": x => x.type == "sequence" ? yunoify(x.length === undefined ? Infinity : BigInt(x.length)) : yunoify(BigInt(to_real_str(x).length))
+  },
+  "N": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? _neg(x) : fail("`N` not implemented on chr"))
   },
   "P": {
     "arity": 1,
@@ -723,6 +770,10 @@ let verbs = {
     "call": vectorized((x, y) => x.type == "number" ?
       (y.type == "number" ? arbitrary_range(x, y, false, false) : fail("`r` not implemented on num, chr"))
     : (y.type == "number" ? fail("`r` not implemented on chr, num") : _map(_chr, arbitrary_range(yunoify(codepage.indexOf(x.value)), yunoify(codepage.indexOf(y.value))))))
+  },
+  "ɐ": {
+    "arity": 2,
+    "call": (x, y) => _sublist_index(x, y)
   },
   "ɨ": {
     "arity": 2,
@@ -800,12 +851,20 @@ let verbs = {
       }))
     })
   },
+  "ᴀR": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? arbitrary_range(_neg(x), x, false, false) : fail("`ᴀR` not implemented on chr"))
+  },
   "ᴍI": {
     "arity": 0,
     "call": () => ({
       "type": "number",
       "value": [Infinity, 0n]
     })
+  },
+  "ᴍX": {
+    "arity": 0,
+    "call": () => yunoify(Math.random())
   },
   "ᴅ": {
     "arity": 1,
@@ -1039,15 +1098,63 @@ let adverbs = {
         return memoize({
           "type": "sequence",
           "call": index => {
-            if (index <= 0) throw "cannot get elements left of the origin of mono-directional recursive sequences";
-            while (cache.length < index) {
+            if (LE(index, 0)) throw "cannot get elements left of the origin of mono-directional recursive sequences";
+            while (LT(cache.length, index)) {
               cache.push(links[0].call(last(cache), y));
             }
-            return cache[index - 1];
+            return cache[SUB(index, 1)];
           }
         });
       }
     })
+  },
+  "ᴀF": {
+    "condition": hyper,
+    "call": (links, outers, index) => ({
+      "arity": 1,
+      "call": (x, y) => {
+        var cache;
+        if (x.type == "sequence" && x.length == 2) cache = [x.call(1), x.call(2)];
+        else cache = [x, x];
+        return memoize({
+          "type": "sequence",
+          "call": index => {
+            if (LE(index, 0)) throw "cannot get elements left of the origin of mono-directional recursive sequences";
+            while (LT(cache.length, index)) {
+              cache.push(links[0].arity == 1 ? links[0].call(list_to_func([cache[cache.length - 2], last(cache)])) : links[0].call(cache[cache.length - 2], last(cache)));
+            }
+            return cache[SUB(index, 1)];
+          }
+        })
+      }
+    })
+  },
+  "ᴀs": {
+    "condition": x => x.length == 2,
+    "call": (links, outers, index) => ({
+      "arity": Math.max(links[0].arity, links[1].arity),
+      "call": (x, y) => {
+        var forward = [x];
+        var backward = [x];
+        return memoize({
+          "type": "sequence",
+          "call": index => {
+            if (LE(index, 0)) {
+              while (LE(backward.length - 1, -index)) {
+                backward.push(links[0].call(last(backward), y));
+              }
+              return backward[SUB(1, index)];
+            } else {
+              while (LT(forward.length, index)) {
+                forward.push(links[1].call(last(forward), y));
+              }
+              return forward[SUB(index, 1)];
+            }
+          }
+        });
+      }
+    }),
+    "fail": (links, outers, index) => links.length == 1 ? adverbs["ᴀs"].call([links[0], links[0]], outers, index) : fail("cannot create bidirectional infinite sequence without arguments")
   },
   "Ի": linkref(0, -1),
   "Ը": linkref(1, -1),
@@ -1123,8 +1230,8 @@ function vectorize(call, left, right, config) {
           "type": "sequence",
           "call": index => {
             if (length === undefined) {
-              var l = x.length === undefined || 0 < index && index <= x.length ? x.call(index) : undefined;
-              var r = y.length === undefined || 0 < index && index <= y.length ? y.call(index) : undefined;
+              var l = x.length === undefined || GT(index, 0) && LE(index, x.length) ? x.call(index) : undefined;
+              var r = y.length === undefined || GT(index, 0) && LE(index, y.length) ? y.call(index) : undefined;
               if (l === undefined) return r;
               if (r === undefined) return l;
               return vectorize(call, l, r, config);
@@ -1192,7 +1299,7 @@ function list_to_func(x) {
   return memoize({
     "type": "sequence",
     "length": x.length,
-    "call": (a => i => a[MOD(i - 1, a.length)])(x)
+    "call": (a => i => a[Number(MOD(SUB(i, 1), a.length))])(x)
   })
 }
 
@@ -1419,7 +1526,7 @@ function strand(line) {
 function tokenize(code) {
   var lines = [[]];
   for (var index = 0; index < code.length; index++) {
-    if (code[index] == "\n") {
+    if (code[index] == "\n" && code[index - 1] != "ᴋ") {
       lines.push([]);
     } else if (code[index] == "“") {
       index++;
@@ -1520,6 +1627,7 @@ function tokenize(code) {
       console.log(v);
     } else if (code[index] == "ᴋ") {
       if (code[++index] == " ") continue;
+      if (code[index] == "\n") continue;
       var v = k_digraphs["ᴋ" + (code[index] || "H")];
       if (v === 0) {
         error("warning: literal digraph `ᴋ" + (code[index] || "H") + "` doesn't appear to have been defined yet, so 0 has been returned\n");
@@ -1537,6 +1645,10 @@ function tokenize(code) {
       last(lines).push({
         "type": "literal",
         "special": "close"
+      });
+    } else if (code[index] == "ǂ") {
+      last(lines).push({
+        "type": "breaker"
       });
     } else if ("(){}┝┥".indexOf(code[index]) != -1) {
       last(lines).push({
@@ -1623,6 +1735,8 @@ function parse_chain(chain, chains, links, outerindex, stack) {
           "call": ((chain, arity) => (x, y) => evaluate(chain, arity, x, y))(parse_chain(subchain, chains, links, outerindex, []), arity)
         });
       }
+    } else if (chain[index].type == "breaker") {
+
     } else {
       console.log(chain[index]);
       throw "unidentified item when parsing the chain; check the console";
@@ -1814,12 +1928,15 @@ function execute(code, args, input_func, print_func, error_func, flags = {}) {
              + "O - implicit range uses the outer strategy\n"
              + "I - implicit range uses the inner strategy\n"
              + "j - final implicit output joins on newlines\n"
-             + "k - final implicit output joins on spaces\n"
+             + "s - final implicit output joins on spaces\n"
              + "d - disable implicit output\n"
-             + "t - round all numbers to the nearest thousandth\n",
+             + "t - round all numbers to the nearest thousandth\n"
              + "M - don't memoize sequence calls (warning: severe performance degradation is possible)\n"
              + "_ - don't cap output (warning: program may freeze)\n"
+             + "K - cap output at 1000 characters\n"
+             + "k - error when accessing beyond ± 1000 in a sequence\n"
              + "W - cap output at 10 000 characters\n"
+             + "w - error when accessing beyond ± 10 000 in a sequence\n"
              + "h - show this help message");
     return;
   }
