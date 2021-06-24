@@ -26,5 +26,9 @@ def serve_builtins():
         with open("static/adverbs.txt") as g:
             return "<title>yuno builtins</title><link rel='shortcut icon' type='image/png' href='/static/favicon.png' /><pre><code>===========\n== VERBS ==\n===========\n\n" + html.escape(f.read()) + "\n\n=============\n== ADVERBS ==\n=============\n\n" + html.escape(g.read()) + "</code></pre><style>body,pre,code{background-color:#1c1b22;color:#fbfbfe;font-family:'Consolas',monospace}</style>"
 
+@app.route("/codepage")
+def serve_codepage():
+    return render_template("codepage.html")
+
 if __name__ == "__main__":
     app.run(host = "0.0.0.0", port = 5105, debug = True)

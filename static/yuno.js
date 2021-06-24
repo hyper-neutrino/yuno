@@ -1154,7 +1154,36 @@ let adverbs = {
         });
       }
     }),
-    "fail": (links, outers, index) => links.length == 1 ? adverbs["ᴀs"].call([links[0], links[0]], outers, index) : fail("cannot create bidirectional infinite sequence without arguments")
+    "fail": (links, outers, index) => links.length == 1 ? adverbs["ᴀs"].call([links[0], links[0]], outers, index) : fail("cannot create bidirectional infinite sequence without functions")
+  },
+  "ᴀf": {
+    "condition": x => x.length == 2,
+    "call": (links, outers, index) => ({
+      "arity": 1,
+      "call": (x, y) => {
+        var forward;
+        if (x.type == "sequence" && x.length == 2) forward = [x.call(1), x.call(2)];
+        else forward = [x, x];
+        var backward = [forward[1], forward[0]];
+        return memoize({
+          "type": "sequence",
+          "call": index => {
+            if (LE(index, 0)) {
+              while (LE(backward.length - 3, -index)) {
+                backward.push(links[0].arity == 1 ? links[0].call(list_to_func([backward[backward.length - 2], last(backward)])) : links[0].call(backward[backward.length - 2], last(backward)));
+              }
+              return backward[SUB(3, index)];
+            } else {
+              while (LT(forward.length, index)) {
+                forward.push(links[1].arity == 1 ? links[1].call(list_to_func([forward[forward.length - 2], last(forward)])) : links[1].call(forward[forward.length - 2], last(forward)));
+              }
+              return forward[SUB(index, 1)];
+            }
+          }
+        })
+      }
+    }),
+    "fail": (links, outers, index) => links.length == 1 ? adverbs["ᴀf"].call([links[0], links[0]], outers, index) : fail("cannot create bidirectional infinite sequence without functions")
   },
   "Ի": linkref(0, -1),
   "Ը": linkref(1, -1),
