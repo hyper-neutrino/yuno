@@ -42,8 +42,11 @@ E   (z: any)                       All Equal? (implicit stringify)
 F   (z: any)                       Flatten fully
 H   (z: num)                       Halve
     (z: str)                       divide a string into halves, short if of odd length
+I   (z: any)                       Increments (vectorizes to depth 1) - characters become their codepoints
+J   (z: any)                       Range of length
 L   (z: num)                       Stringified length
     (z: any)                       Length
+M   (z: )
 N   (z: num)                       Negate; -z
     (z: chr)                       ?
 P   (z: num)                       Primality check; Is prime
@@ -79,19 +82,23 @@ R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z
 
 math/misc monads
 ----------------
+ᴀM  (z: any)                       Indices of maximal elements (implicit range)
 ᴀR  (z: num)                       Mirrored Range; equivalent to (Nr)
     (z: chr)                       ?
+ᴀᴍ  (z: any)                       Indices of minimal elements (implicit range)
 
 I/O monads
 ----------
+ɵA  (z: any)                       alert a stringified form and return z
 ɵG  (z: any)                       format into a grid (string)
-ɵʛ  (z: any)                       format into a grid (list of lines)
-ɵɢ  (z: any)                       format into a grid (matrix of strings)
 ɵH  (z: any)                       format into a grid, left-aligned (string)
-ɵի  (z: any)                       format into a grid, left-aligned (list of lines)
-ɵʜ  (z: any)                       format into a grid, left-aligned (matrix of strings)
+ɵK  (z: any)                       join on spaces, stringifying all values
 ɵN  (z: any)                       output z with a trailing newline
 ɵ_  (z: any)                       output z
+ɵʛ  (z: any)                       format into a grid (list of lines)
+ɵɢ  (z: any)                       format into a grid (matrix of strings)
+ɵʜ  (z: any)                       format into a grid, left-aligned (matrix of strings)
+ɵի  (z: any)                       format into a grid, left-aligned (list of lines)
 
 dyads
 -----
@@ -116,6 +123,9 @@ dyads
     (x: str, y: num)               ?
     (x: num, y: str)               ?
     (x: str, y: str)               ?
+<   (x: any, y: any)               x < y; less than (vectorized)
+=   (x: any, y: any)               x = y; equal to (vectorized)
+>   (x: any, y: any)               x > y; greater than (vectorized)
 _   (x: num, y: num)               x - y; subtraction; minus
     (x: chr, y: num)               chr(ord(x) - y); caesar cipher (ignores complex component)
     (x: num, y: chr)               chr(ord(y) + x); caesar cipher (ignores complex component)
@@ -157,5 +167,14 @@ r   (x: num, y: num)               Inclusive Range (re, re => [re]; im, im => [i
 
 array/seq dyads
 ---------------
-ᴀA  (x: any, y: any)               Arithmetic Sequence; infinite sequence a => x + y * (a - 1)
-ᴀG  (x: any, y: any)               Geometric Sequence; infinite sequence a => x * y ** (a - 1)
+ᴀ<  (x: any, y: any)               x < y; less than (non-vectorizing)
+ᴀ>  (x: any, y: any)               x > y; greater than (non-vectorizing)
+ᴀa  (x: any, y: any)               Arithmetic Sequence; infinite sequence a => x + y * (a - 1)
+ᴀg  (x: any, y: any)               Geometric Sequence; infinite sequence a => x * y ** (a - 1)
+ᴀ«  (x: any, y: any)               x <= y; less than or equal to (non-vectorizing)
+ᴀ»  (x: any, y: any)               x >= y; greater than or equal to (non-vectorizing)
+
+math/misc dyads
+---------------
+ᴍ<  (x: any, y: any)               x <= y; less than or equal to (vectorized)
+ᴍ>  (x: any, y: any)               x >= y; greater than or equal to (vectorized)

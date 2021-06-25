@@ -31,8 +31,9 @@ let fail = x => { throw x; }
 
 let iter_range = x => x.type == "sequence" ? x : x.type == "character" ? list_to_func([x]) : _implicit_range(x);
 
-let depth = x => x.type == "sequence" ? (x.length === undefined ? Infinity : x.length == 0 ? 1 : minimum(func_to_list(x).map(x => depth(x))) + 1) : 0;
+let depth = (x, y = Infinity) => x.type == "sequence" ? (x.length === undefined ? y : x.length == 0 ? 1 : maximum(func_to_list(x).map(x => depth(x))) + 1) : 0;
 let minimum = x => Math.min.apply(null, x);
+let maximum = x => Math.max.apply(null, x);
 let modulo = (x, y) => y == 0 ? NaN : y > 0 ? REM(ADD(REM(x, y), LT(x, 0) ? y : 0), y) : -modulo(-x, y);
 let indexmod = (x, y) => modulo(x - 1, y) + 1;
 
@@ -139,6 +140,27 @@ let _mod = (x, y) => ({
   "type": "number",
   "value": [MOD(x.value[0], y.value[0]), 0n]
 });
+
+let _seq_gt = (x, y) => {
+  var xlen = elvis(x.length, Infinity);
+  var ylen = elvis(y.length, Infinity);
+  for (var index = 1; index <= Math.min(xlen, ylen); index++) {
+    var a = x.call(index);
+    var b = y.call(index);
+    if (to_bool(_gt(a, b))) {
+      return true;
+    } else if (to_bool(_gt(b, a))) {
+      return false;
+    }
+  }
+  return xlen > ylen;
+}
+
+let _gt = (x, y) => yunoify((x.type == "sequence" ? (y.type != "sequence" || _seq_gt(x, y)) : (y.type != "sequence" && GT(x.type == "number" ? x.value[0] : x.value.charCodeAt(0), y.type == "number" ? y.value[0] : y.value.charCodeAt(0)))) ? 1 : 0);
+
+let _lt = (x, y) => _gt(y, x);
+
+let _eq = (x, y) => yunoify(_EQ(x, y) ? 1 : 0);
 
 let _exp = (x, y) => {
   if (y.value[0] == 0 && y.value[1] == 0) return yunoify(1);
@@ -367,7 +389,7 @@ let _from_base = (x, y) => {
 let _to_base = (x, y, bj = false) => {
   var num = x.value[0];
   var base = y.value[0];
-  if (base == 0) throw yunoify([num]);
+  if (base == 0) return yunoify([num]);
   if (num == 0) return yunoify([0]);
   if (base == -1) {
     var digits = [...Array(Math.abs(Number(num) * 2))].map((_, i) => 1 - i % 2);
@@ -442,8 +464,6 @@ let _EQ = (x, y) => {
     }
   }
 };
-
-let _eq = (x, y) => yunoify(_EQ(x, y) ? 1 : 0);
 
 let _index_of = (x, y) => {
   if (x.type != "sequence") x = list_to_func([x]);
@@ -590,7 +610,15 @@ let _format_grid = (x, join_lines, join_rows, left = false) => {
   }
 };
 
-// verb functions above here
+let _max = (x, y) => to_bool(_gt(y, x)) ? y : x;
+
+let _min = (x, y) => to_bool(_lt(y, x)) ? y : x;
+
+let _maximum = x => func_to_list(x).reduce((x, y) => _max(x, y));
+
+let _minimum = x => func_to_list(x).reduce((x, y) => _min(x, y));
+
+// verbs go here
 
 function leading_spaces(x) {
   var total = 0;
@@ -692,6 +720,75 @@ let deep_element_count = x => {
   return count;
 };
 
+
+
+let absref = arity => ({
+  "condition": hyper,
+  "call": (links, outers, index) => ({
+    "arity": Math.max(links[0].arity, arity),
+    "call": (x, y) => evaluate(outers[(x => x >= index ? x + 1 : x)(modulo(floor(Number(to_real_num(evaluate([links[0]], links[0].arity, x, y)))) - 1, outers.length - 1))], arity, x, y)
+  })
+});
+
+let _while_loop = (links, keep = false) => links.length == 2 ? {
+  "arity": Math.max(links[0].arity, links[1].arity),
+  "call": (x, y) => {
+    var v = x;
+    var o = [];
+    while (to_bool(links[1].call(v, y))) {
+      if (keep) o.push(v);
+      v = links[0].call(v, y);
+    }
+    return keep ? list_to_func(o) : v;
+  }
+} : {
+  "arity": links[0].arity,
+  "call": (x, y) => {
+    var v = x;
+    var o = [];
+    while (true) {
+      var k = links[0].call(v, y);
+      if (!to_bool(k)) return keep ? list_to_func(o) : v;
+      o.push(v);
+      v = k;
+    }
+  }
+}
+
+let _if_else = links => {
+  if (links.length == 0) {
+    links = [l2v(yunoify(1)).value, l2v(yunoify(0)).value, verbs["¹"]];
+  } else if (links.length == 1) {
+    links = [l2v(yunoify(1)).value, l2v(yunoify(0)).value, links[0]];
+  } else if (links.length == 2) {
+    links = [links[0], verbs["¹"], links[1]];
+  }
+
+  return {
+    "arity": links.map(x => x.arity).reduce((x, y) => Math.max(x, y)),
+    "call": (x, y) => (to_bool(links[2].call(x, y)) ? links[0] : links[1]).call(x, y)
+  };
+};
+
+let _deep_recurse = links => {
+  let fl = (x, y) => x.type == "sequence" ? links[0].call(_map(x => fl(x), x), y) : x;
+  return {
+    "arity": Math.max(links[0].arity, 1),
+    "call": fl
+  };
+};
+
+let _pairwise = links => memoize({
+  "arity": 1,
+  "call": (x, y) => (x => memoize({
+    "type": "sequence",
+    "length": x.length === undefined ? undefined : Math.max(0, x.length - 1),
+    "call": index => (index => links[0].call(x.call(index), x.call(index + 1)))(x.length === undefined ? index : indexmod(index, x.length - 1))
+  }))(x.type == "sequence" ? x : list_to_func([x]))
+});
+
+// hypers gp here / adverbs go here
+
 let verbs = {
   "Σ": {
     "arity": 1,
@@ -776,6 +873,18 @@ let verbs = {
       "dostring": false
     })
   },
+  "<": {
+    "arity": 2,
+    "call": vectorized(_lt)
+  },
+  "=": {
+    "arity": 2,
+    "call": vectorized(_eq)
+  },
+  ">": {
+    "arity": 2,
+    "call": vectorized(_gt)
+  },
   "A": {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ?
@@ -823,6 +932,17 @@ let verbs = {
       "dostring": false
     })
   },
+  "I": {
+    "arity": 1,
+    "call": vectorized(x => _pairwise([adverbs["@"].call([verbs["_"]])]).call(x), {
+      "invdepth": 1,
+      "seqdepth": 1
+    })
+  },
+  "J": {
+    "arity": 1,
+    "call": x => _range(x.type == "sequence" ? x.length === undefined ? yunoify(Infinity) : yunoify(x.length) : yunoify(1), "upper")
+  },
   "L": {
     "arity": 1,
     "call": x => x.type == "sequence" ? yunoify(x.length === undefined ? Infinity : BigInt(x.length)) : yunoify(BigInt(to_real_str(x).length))
@@ -843,7 +963,7 @@ let verbs = {
     "arity": 2,
     "call": vectorized((x, y) => x.type == "number" ?
       (y.type == "number" ? _sub(x, y) : _cpshift(y, x))
-    : (y.type == "number" ? _cpshift(x, _neg(y)) : fail("`_` not implemented on chr, chr")))
+    : (y.type == "number" ? _cpshift(x, _neg(y)) : yunoify(y.value.charCodeAt(0) - x.value.charCodeAt(0))))
   },
   "b": {
     "arity": 2,
@@ -910,6 +1030,10 @@ let verbs = {
     "arity": 2,
     "call": (x, y) => y
   },
+  "ɵA": {
+    "arity": 1,
+    "call": x => (alert(stringify(x)), x)
+  },
   "ɵE": {
     "arity": 0,
     "call": () => evaluate(last(parse(tokenize(input()))), 0)
@@ -925,6 +1049,14 @@ let verbs = {
   "ɵI": {
     "arity": 0,
     "call": () => yunoify(input())
+  },
+  "ɵK": {
+    "arity": 1,
+    "call": x => (x => x.length === undefined ?
+      fail("cannot join infinite sequences")
+    : yunoify([...Array(x.length)].map((_, i) => stringify(x.call(i + 1))).join(" ")))(
+      x.type == "sequence" ? x : list_to_func([x])
+    )
   },
   "ɵN": {
     "arity": 1,
@@ -976,7 +1108,23 @@ let verbs = {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _range(x, "inner") : _char_range("!", x))
   },
-  "ᴀA": {
+  "ᴀ<": {
+    "arity": 2,
+    "call": _lt
+  },
+  "ᴀ>": {
+    "arity": 2,
+    "call": _gt
+  },
+  "ᴀM": {
+    "arity": 1,
+    "call": (x, y) => (k => _map(q => _eq(q, k), x))(_maximum(x))
+  },
+  "ᴀR": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? arbitrary_range(_neg(x), x, false, false) : fail("`ᴀR` not implemented on chr"))
+  },
+  "ᴀa": {
     "arity": 2,
     "call": (x, y) => memoize({
       "type": "sequence",
@@ -986,7 +1134,7 @@ let verbs = {
       }))
     })
   },
-  "ᴀG": {
+  "ᴀg": {
     "arity": 2,
     "call": (x, y) => memoize({
       "type": "sequence",
@@ -996,9 +1144,25 @@ let verbs = {
       }))
     })
   },
-  "ᴀR": {
+  "ᴀᴍ": {
     "arity": 1,
-    "call": vectorized(x => x.type == "number" ? arbitrary_range(_neg(x), x, false, false) : fail("`ᴀR` not implemented on chr"))
+    "call": (x, y) => (k => _map(q => _eq(q, k), x))(_minimum(x))
+  },
+  "ᴀ«": {
+    "arity": 2,
+    "call": (x, y) => _sub(yunoify(1), _gt(x, y))
+  },
+  "ᴀ»": {
+    "arity": 2,
+    "call": (x, y) => _sub(yunoify(1), _lt(x, y))
+  },
+  "ᴍ<": {
+    "arity": 2,
+    "call": vectorized((x, y) => _sub(yunoify(1), _gt(x, y)))
+  },
+  "ᴍ>": {
+    "arity": 2,
+    "call": vectorized((x, y) => _sub(yunoify(1), _lt(x, y)))
   },
   "ᴍI": {
     "arity": 0,
@@ -1100,62 +1264,6 @@ let verbs = {
     })
   }
 }
-
-let absref = arity => ({
-  "condition": hyper,
-  "call": (links, outers, index) => ({
-    "arity": Math.max(links[0].arity, arity),
-    "call": (x, y) => evaluate(outers[(x => x >= index ? x + 1 : x)(modulo(floor(Number(to_real_num(evaluate([links[0]], links[0].arity, x, y)))) - 1, outers.length - 1))], arity, x, y)
-  })
-});
-
-let _while_loop = (links, keep = false) => links.length == 2 ? {
-  "arity": Math.max(links[0].arity, links[1].arity),
-  "call": (x, y) => {
-    var v = x;
-    var o = [];
-    while (to_bool(links[1].call(v, y))) {
-      if (keep) o.push(v);
-      v = links[0].call(v, y);
-    }
-    return keep ? list_to_func(o) : v;
-  }
-} : {
-  "arity": links[0].arity,
-  "call": (x, y) => {
-    var v = x;
-    var o = [];
-    while (true) {
-      var k = links[0].call(v, y);
-      if (!to_bool(k)) return keep ? list_to_func(o) : v;
-      o.push(v);
-      v = k;
-    }
-  }
-}
-
-let _if_else = links => {
-  if (links.length == 0) {
-    links = [l2v(yunoify(1)).value, l2v(yunoify(0)).value, verbs["¹"]];
-  } else if (links.length == 1) {
-    links = [l2v(yunoify(1)).value, l2v(yunoify(0)).value, links[0]];
-  } else if (links.length == 2) {
-    links = [links[0], verbs["¹"], links[1]];
-  }
-
-  return {
-    "arity": links.map(x => x.arity).reduce((x, y) => Math.max(x, y)),
-    "call": (x, y) => (to_bool(links[2].call(x, y)) ? links[0] : links[1]).call(x, y)
-  };
-};
-
-let _deep_recurse = links => {
-  let fl = (x, y) => x.type == "sequence" ? links[0].call(_map(x => fl(x), x), y) : x;
-  return {
-    "arity": Math.max(links[0].arity, 1),
-    "call": fl
-  };
-};
 
 let adverbs = {
   "Ξ": {
@@ -1384,16 +1492,16 @@ these don't apply when one side is not vectorized
 function vectorize(call, left, right, config) {
   config = elvis(config, {});
 
-  var maxdepthl = elvis(config.maxdepthl, -1);
-  var maxdepthr = elvis(config.maxdepthr, -1);
-  var invdepthl = elvis(config.invdepthl, -1);
-  var invdepthr = elvis(config.invdepthr, -1);
+  var maxdepthl = elvis(config.maxdepthl, elvis(config.maxdepth, -1));
+  var maxdepthr = elvis(config.maxdepthr, elvis(config.maxdepth, -1));
+  var invdepthl = elvis(config.invdepthl, elvis(config.invdepth, -1));
+  var invdepthr = elvis(config.invdepthr, elvis(config.invdepth, -1));
   var strategy = elvis(elvis(config.strategy, settings.vectorization_strategy), "default");
   var dostringl = elvis(config.dostringl, elvis(config.dostring, true));
   var dostringr = elvis(config.dostringr, elvis(config.dostring, true));
 
-  var do_left = left && left.type == "sequence" && (dostringl || !is_string(left)) && maxdepthl != 0 && depth(left) > invdepthl;
-  var do_right = right && right.type == "sequence" && (dostringr || !is_string(right)) && maxdepthr != 0 && depth(right) > invdepthr;
+  var do_left = left && left.type == "sequence" && (dostringl || !is_string(left)) && maxdepthl != 0 && depth(left, elvis(config.seqdepthl, elvis(config.seqdepth, Infinity))) > invdepthl;
+  var do_right = right && right.type == "sequence" && (dostringr || !is_string(right)) && maxdepthr != 0 && depth(right, elvis(config.seqdepthr, elvis(config.seqdepth, Infinity))) > invdepthr;
 
   var new_config = clone(config); new_config.maxdepthl = maxdepthl ? maxdepthl - 1 : 0; new_config.maxdepthr = maxdepthr ? maxdepthr - 1 : 0;
 
@@ -1477,12 +1585,21 @@ function list_to_func(x) {
   })
 }
 
-function func_to_list(x) {
+function func_to_list(x, lc = undefined) {
+  var length = x.length === undefined && lc !== undefined ? lc : x.length;
+  if (length === undefined) throw "cannot listify infinite sequences";
   var list = [];
-  for (var i = 1; i <= x.length; i++) {
+  for (var i = 1; i <= length; i++) {
     list.push(x.call(i));
   }
   return list;
+}
+
+function stringify(x) {
+  if (x.type == "character") return x.value;
+  if (x.type == "number") return unparse_number(x);
+  if (is_string(x)) return to_real_str(x);
+  return "[" + (x.length === undefined ? func_to_list(x, settings.capten ? 10 : undefined) : func_to_list(x)).map(x => stringify(x)).join(", ") + (x.length === undefined ? ", ..." : "") + "]";
 }
 
 function to_real_str(x) {

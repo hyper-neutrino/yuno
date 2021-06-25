@@ -29,10 +29,10 @@ hypers
                                    for monads, convert to a dyad and use the left argument
                                    for nilads, convert to a monad and ignore the argument
 ‖              <link>‖             filter; discard
-Ͼ              <link>Ͼ             map over the left argument; nilads become monads
-Ͽ              <link>Ͽ             map over the right argument; monads become dyads and use the right argument only (equivalent to <link>Ͼ@)
 ᴀS             <link>ᴀS            custom recursively defined sequence (seq[1] is left argument, seq[x] = f(seq[x - 1]))
 ᴀF             <link>ᴀF            fibonacci-like sequence; seq[1], seq[2] is left argument, seq[x] = f(seq[x - 2], seq[x - 1]) (implicit duplicate)
+Ͼ              <link>Ͼ             map over the left argument; nilads become monads
+Ͽ              <link>Ͽ             map over the right argument; monads become dyads and use the right argument only (equivalent to <link>Ͼ@)
 
 combinators
 -----------
