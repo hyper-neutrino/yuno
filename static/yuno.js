@@ -516,6 +516,94 @@ let _sublist_index = (x, y) => {
   return yunoify(0);
 }
 
+let _deep_flatten = x => {
+  var count = deep_element_count(x);
+  var cache = [];
+  var stack = [[0, x]];
+  return memoize({
+    "type": "sequence",
+    "length": count == Infinity ? undefined : count,
+    "call": index => {
+      if (LE(index, 0)) throw "cannot get elements left of origin of a flattened list";
+      while (LT(cache.length, index)) {
+        if (stack.length == 0) {
+          cache.push(yunoify(0));
+          continue;
+        }
+        outer: while (true) {
+          last(stack)[0]++;
+          while (stack.length && last(stack)[1].length !== undefined && GT(last(stack)[0], last(stack)[1].length)) {
+            stack.pop();
+            if (stack.length) last(stack)[0]++;
+          }
+          if (stack.length == 0) break outer;
+          while (last(stack)[1].type == "sequence") {
+            if (last(stack)[1].length === 0) {
+              stack.pop();
+              continue outer;
+            }
+            stack.push([1, last(stack)[1].call(last(stack)[0])]);
+          }
+          break;
+        }
+        if (stack.length) cache.push(stack.pop()[1]);
+        else cache.push(yunoify(0));
+      }
+      return cache[SUB(index, 1)];
+    }
+  });
+};
+
+let _format_grid = (x, join_lines, join_rows, left = false) => {
+  if (x.type != "sequence") {
+    if (join_rows) return yunoify(to_real_str(x));
+    if (join_lines) return list_to_func([yunoify(to_real_str(x))]);
+    return list_to_func([list_to_func([yunoify(to_real_str(x))])]);
+  } else if (x.length === undefined) {
+    throw "cannot format infinite sequences into grids";
+  } else {
+    lines = [];
+    var maxlength = 0;
+    var flat = true;
+    for (var index = 1; index <= x.length; index++) {
+      var y = x.call(index);
+      if (y.type != "sequence") {
+        var z = to_real_str(y);
+        maxlength = Math.max(maxlength, z.length);
+        lines.push([z]);
+      } else if (y.length === undefined) {
+        throw "cannot format infinite sequences into grids";
+      } else {
+        flat = false;
+        lines.push([]);
+        for (var j = 1; j <= y.length; j++) {
+          var z = to_real_str(y.call(j));
+          maxlength = Math.max(maxlength, z.length);
+          last(lines).push(z);
+        }
+      }
+    }
+    lines = lines.map(line => line.map(val => (fill => left ? val + fill : fill + val)(" ".repeat(Math.max(0, maxlength - val.length)))));
+    if (join_lines) lines = lines.map(x => x.join(" "));
+    if (join_rows) lines = lines.join(flat ? " " : "\n");
+    return yunoify(lines);
+  }
+};
+
+// verb functions above here
+
+function leading_spaces(x) {
+  var total = 0;
+  for (var k = 0; k < x.length; k++) {
+    if (x.charAt(k) == " ") {
+      total++;
+    } else {
+      break;
+    }
+  }
+  return total;
+}
+
 function string_increment(x) {
   if (x == "") {
     return "Γ";
@@ -583,6 +671,26 @@ function arbitrary_range(start, end, open_excl, close_excl) {
 }
 
 let to_real_num = x => x.type == "number" ? x.value[0] : [fail("attempted to convert invalid object to a real number; check the console"), console.log(x)];
+
+let deep_element_count = x => {
+  var queue = [x];
+  var count = 0;
+  while (queue.length) {
+    var k = queue.shift();
+    if (k.type == "sequence") {
+      if (k.length === undefined) {
+        return Infinity;
+      } else {
+        for (var index = 1; index <= k.length; index++) {
+          queue.push(k.call(index));
+        }
+      }
+    } else {
+      count++;
+    }
+  }
+  return count;
+};
 
 let verbs = {
   "Σ": {
@@ -702,6 +810,19 @@ let verbs = {
     "arity": 1,
     "call": x => x.type == "character" ? yunoify(1) : _all_equal(x.type == "number" ? yunoify(unparse_number(x)) : x)
   },
+  "F": {
+    "arity": 1,
+    "call": x => _deep_flatten(x)
+  },
+  "H": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? {
+      "type": "number",
+      "value": [(MOD(x.value[0], 2) == 0 ? DIV : TDV)(x.value[0], 2), (MOD(x.value[1], 2) == 0 ? DIV : TDV)(x.value[1], 2)]
+    } : (y => yunoify([y.substring(0, Math.floor(y.length / 2)), y.substring(Math.ceil(y.length / 2))]))(to_real_str(x)), {
+      "dostring": false
+    })
+  },
   "L": {
     "arity": 1,
     "call": x => x.type == "sequence" ? yunoify(x.length === undefined ? Infinity : BigInt(x.length)) : yunoify(BigInt(to_real_str(x).length))
@@ -793,6 +914,14 @@ let verbs = {
     "arity": 0,
     "call": () => evaluate(last(parse(tokenize(input()))), 0)
   },
+  "ɵG": {
+    "arity": 1,
+    "call": x => _format_grid(x, true, true)
+  },
+  "ɵH": {
+    "arity": 1,
+    "call": x => _format_grid(x, true, true, true)
+  },
   "ɵI": {
     "arity": 0,
     "call": () => yunoify(input())
@@ -804,6 +933,22 @@ let verbs = {
   "ɵ_": {
     "arity": 1,
     "call": x => (yuno_output(x), x)
+  },
+  "ɵʛ": {
+    "arity": 1,
+    "call": x => _format_grid(x, true, false)
+  },
+  "ɵɢ": {
+    "arity": 1,
+    "call": x => _format_grid(x, false, false)
+  },
+  "ɵʜ": {
+    "arity": 1,
+    "call": x => _format_grid(x, false, false, true)
+  },
+  "ɵի": {
+    "arity": 1,
+    "call": x => _format_grid(x, true, false, true)
   },
   "ɹ": {
     "arity": 2,

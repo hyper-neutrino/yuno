@@ -39,6 +39,9 @@ C   (z: num)                       Complement; 1 - z
 D   (z: num)                       Integer to Base 10; Decimal
     (z: str)                       ?
 E   (z: any)                       All Equal? (implicit stringify)
+F   (z: any)                       Flatten fully
+H   (z: num)                       Halve
+    (z: str)                       divide a string into halves, short if of odd length
 L   (z: num)                       Stringified length
     (z: any)                       Length
 N   (z: num)                       Negate; -z
@@ -81,6 +84,12 @@ math/misc monads
 
 I/O monads
 ----------
+ɵG  (z: any)                       format into a grid (string)
+ɵʛ  (z: any)                       format into a grid (list of lines)
+ɵɢ  (z: any)                       format into a grid (matrix of strings)
+ɵH  (z: any)                       format into a grid, left-aligned (string)
+ɵի  (z: any)                       format into a grid, left-aligned (list of lines)
+ɵʜ  (z: any)                       format into a grid, left-aligned (matrix of strings)
 ɵN  (z: any)                       output z with a trailing newline
 ɵ_  (z: any)                       output z
 
