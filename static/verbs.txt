@@ -49,6 +49,8 @@ L   (z: num)                       Stringified length
 M   (z: )
 N   (z: num)                       Negate; -z
     (z: chr)                       ?
+O   (z: num)                       chr
+    (z: chr)                       ord
 P   (z: num)                       Primality check; Is prime
     (z: chr)                       ?
 R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z + 1]
@@ -118,11 +120,12 @@ dyads
     (x: str, y: num)               x + y.toString(); concatenation
     (x: num, y: str)               x.toString() + y; concatenation
     (x: str, y: str)               x + y; concatenation
-,   (x: any, y: any)               [x, y]; pair; (x, y) => [x, y
+,   (x: any, y: any)               [x, y]; pair; append false-false tightening
 :   (x: num, y: num)               x // y; floor division; floor divide
     (x: str, y: num)               ?
     (x: num, y: str)               ?
     (x: str, y: str)               ?
+;   (x: any, y: any)               [...x, ...y]; append; append true-true tightening
 <   (x: any, y: any)               x < y; less than (vectorized)
 =   (x: any, y: any)               x = y; equal to (vectorized)
 >   (x: any, y: any)               x > y; greater than (vectorized)

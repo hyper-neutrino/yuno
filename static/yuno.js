@@ -873,6 +873,10 @@ let verbs = {
       "dostring": false
     })
   },
+  ";": {
+    "arity": 2,
+    "call": (x, y) => list_to_func([...func_to_list(x.type == "sequence" ? x : list_to_func([x])), ...func_to_list(y.type == "sequence" ? y : list_to_func([y]))])
+  },
   "<": {
     "arity": 2,
     "call": vectorized(_lt)
@@ -950,6 +954,10 @@ let verbs = {
   "N": {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _neg(x) : fail("`N` not implemented on chr"))
+  },
+  "O": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? ynchar(String.fromCharCode(Math.floor(Number(x.value[0])))) : yunoify(x.value.charCodeAt(0)))
   },
   "P": {
     "arity": 1,

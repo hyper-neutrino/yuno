@@ -69,9 +69,9 @@ let k_digraphs = {
   "ᴋC": "BCDFGHJKLMNPQRSTVWXZ", // uppercase consonants without Y
   "ᴋD": 0,
   "ᴋE": 0,
-  "ᴋF": ["Fizz", "Buzz"], // fizz buzz
+  "ᴋF": 0,
   "ᴋG": 0,
-  "ᴋH": "Hello, World!", // hello world
+  "ᴋH": 0,
   "ᴋI": 0,
   "ᴋJ": 0,
   "ᴋK": 0,
@@ -186,7 +186,7 @@ let k_digraphs = {
   "ᴋʔ": 0,
   "ᴋʛ": 0,
   "ᴋʝ": 0,
-  "ᴋʞ": 0,
+  "ᴋʞ": "ΓΔΘΞΠΣΦΨΩαβγδεζηθικλμξπρςστυφχψω !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\näæçðøħŋœǂɐɒɓɔɕɖɗɘ¡¿ɞɟɠɣɤɥɦɧɨɫɬɭɮɯɰɱɲɳɵɶɹɻɽɾʁʂʃʄʈʉʊʋʌʎʐʑʒʔʛʝʞʡʢˌᶑ‖ᴀʙᴅᴇғɢʜɪᴊᴋʟᴍɴᴘǫʀᴛʏԻԸԹիըթ‼°¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼×÷¬ϨϩϪϫϮϯϰϱϷϸϻϼϾϿ┝┥«»‘’“”", // codepage with newline
   "ᴋʡ": 0,
   "ᴋʢ": 0,
   "ᴋˌ": 0,
@@ -201,7 +201,7 @@ let k_digraphs = {
   "ᴋʜ": "0123456789ABCDEF", // uppercase hexadecimal digits
   "ᴋɪ": 0,
   "ᴋᴊ": 0,
-  "ᴋᴋ": 0,
+  "ᴋᴋ": "ΓΔΘΞΠΣΦΨΩαβγδεζηθικλμξπρςστυφχψω !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~¶äæçðøħŋœǂɐɒɓɔɕɖɗɘ¡¿ɞɟɠɣɤɥɦɧɨɫɬɭɮɯɰɱɲɳɵɶɹɻɽɾʁʂʃʄʈʉʊʋʌʎʐʑʒʔʛʝʞʡʢˌᶑ‖ᴀʙᴅᴇғɢʜɪᴊᴋʟᴍɴᴘǫʀᴛʏԻԸԹիըթ‼°¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼×÷¬ϨϩϪϫϮϯϰϱϷϸϻϼϾϿ┝┥«»‘’“”", // codepage with pilcrow
   "ᴋʟ": 0,
   "ᴋᴍ": 0,
   "ᴋɴ": 0,
