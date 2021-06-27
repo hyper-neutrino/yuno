@@ -53,10 +53,13 @@ O   (z: num)                       chr
     (z: chr)                       ord
 P   (z: num)                       Primality check; Is prime
     (z: chr)                       ?
+Q   (z: any)                       Uniquify; unique elements ordered by first appearance
 R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z + 1]
     (z: im )                       Upper range; [i, 2i, ..., z] or [0, -i, ..., z + i]
     (z: cmp)                       Cartesian product over sum of the above
     (z: chr)                       Character range from "A"
+T   (z: any)                       Indices of truthy elements (implicit lowered range, implicit codepoint)
+U   (z: any)                       Upend; reverse (vectorize to depth 1) (implicit range)
 ᴅ   (z: any)                       Depth
 ᴘ   (z: any)                       Product (implicit range)
 ʀ   (z: re )                       Lower range; [0, 1, ..., z - 1] or [-1, -2, ..., z]
@@ -82,12 +85,17 @@ R   (z: re )                       Upper range; [1, 2, ..., z] or [0, -1, ..., z
 ’   (z: num)                       z + 1; increment
     (z: str)                       string increment
 
-math/misc monads
+array/seq monads
 ----------------
 ᴀM  (z: any)                       Indices of maximal elements (implicit range)
 ᴀR  (z: num)                       Mirrored Range; equivalent to (Nr)
     (z: chr)                       ?
 ᴀᴍ  (z: any)                       Indices of minimal elements (implicit range)
+
+math/misc monads
+----------------
+ᴍC  (z: any)                       chr
+ᴍO  (z: any)                       ord
 
 I/O monads
 ----------

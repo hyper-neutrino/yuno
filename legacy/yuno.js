@@ -618,6 +618,75 @@ let _maximum = x => func_to_list(x).reduce((x, y) => _max(x, y));
 
 let _minimum = x => func_to_list(x).reduce((x, y) => _min(x, y));
 
+let _uniquify = x => {
+  if (x.type != "sequence") x = list_to_func([x]);
+  if (x.length === undefined) {
+    var cache = [];
+    var point = 1;
+    return {
+      "type": "sequence",
+      "call": index => {
+        if (LE(index, 0)) throw "cannot get indices left of origin for uniquified sequence";
+        outer: while (LT(cache.length, index)) {
+          var element = x.call(point++);
+          for (var item of cache) {
+            if (_EQ(element, item)) continue outer;
+          }
+          cache.push(element);
+        }
+        return cache[SUB(index, 1)];
+      }
+    };
+  } else {
+    var output = [];
+    outer: for (var index = 1; index <= x.length; index++) {
+      var element = x.call(index);
+      for (var item of output) {
+        if (_EQ(element, item)) continue outer;
+      }
+      output.push(element);
+    }
+    return list_to_func(output);
+  }
+};
+
+let _truthy_indices = x => {
+  if (x.type != "sequence") x = _range(x.type == "number" ? _trunc_imag(x) : yunoify(x.value.charCodeAt(0)), "lower");
+  if (x.length === undefined) {
+    var cache = [];
+    var point = 1;
+    return {
+      "type": "sequence",
+      "call": index => {
+        if (LE(index, 0)) throw "cannot get indices left of origin for truthy index sequence";
+        outer: while (LT(cache.length, index)) {
+          var element = x.call(point);
+          if (to_bool(element)) {
+            cache.push(yunoify(point));
+          }
+          point++;
+        }
+        return cache[SUB(index, 1)];
+      }
+    };
+  } else {
+    var output = [];
+    outer: for (var index = 1; index <= x.length; index++) {
+      var element = x.call(index);
+      if (to_bool(element)) {
+        output.push(yunoify(index));
+      }
+    }
+    return list_to_func(output);
+  }
+};
+
+let _reverse = x => {
+  if (x.type != "sequence") return x;
+  if (x.length === undefined) throw "cannot reverse infinite sequence";
+  return list_to_func([...Array(x.length)].map((_, i) => x.call(x.length - i)));
+}
+
 // verbs go here
 
 function leading_spaces(x) {
@@ -787,7 +856,7 @@ let _pairwise = links => memoize({
   }))(x.type == "sequence" ? x : list_to_func([x]))
 });
 
-// hypers gp here / adverbs go here
+// hypers go here / adverbs go here
 
 let verbs = {
   "Σ": {
@@ -963,9 +1032,23 @@ let verbs = {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _primeq(x) : fail("`P` not implemented on chr"))
   },
+  "Q": {
+    "arity": 1,
+    "call": _uniquify
+  },
   "R": {
     "arity": 1,
     "call": vectorized(x => x.type == "number" ? _range(x, "upper") : _char_range("A", x))
+  },
+  "T": {
+    "arity": 1,
+    "call": _truthy_indices
+  },
+  "U": {
+    "arity": 1,
+    "call": (x, y) => vectorize(_reverse, x.type == "sequence" ? x : x.type == "number" ? _implicit_range(x) : list_to_func([x]), y, {
+      "invdepth": 1
+    })
   },
   "_": {
     "arity": 2,
@@ -1172,12 +1255,20 @@ let verbs = {
     "arity": 2,
     "call": vectorized((x, y) => _sub(yunoify(1), _lt(x, y)))
   },
+  "ᴍC": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? ynchar(String.fromCharCode(Number(x.value[0]))) : x)
+  },
   "ᴍI": {
     "arity": 0,
     "call": () => ({
       "type": "number",
       "value": [Infinity, 0n]
     })
+  },
+  "ᴍO": {
+    "arity": 1,
+    "call": vectorized(x => x.type == "number" ? x : yunoify(x.value.charCodeAt(0)))
   },
   "ᴍX": {
     "arity": 0,

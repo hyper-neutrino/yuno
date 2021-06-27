@@ -31,8 +31,8 @@ let k_digraphs = {
   "ᴋχ": 0,
   "ᴋψ": 0,
   "ᴋω": 0,
-  "ᴋ ": 0,
-  "ᴋ!": 0,
+  "ᴋ ": "", // comment - can't be used
+  "ᴋ!": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", // printable ASCII
   'ᴋ"': 0,
   "ᴋ#": 0,
   "ᴋ$": 0,
@@ -126,7 +126,7 @@ let k_digraphs = {
   "ᴋ|": 0,
   "ᴋ}": 0,
   "ᴋ~": 0,
-  "ᴋ\n": 0,
+  "ᴋ\n": "", // line continuation - can't be used
   "ᴋä": 0,
   "ᴋæ": 0,
   "ᴋç": "BCDFGHJKLMNPQRSTVWXZbcdfghjklmnpqrstvwxz", // consonants without Y
