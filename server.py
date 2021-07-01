@@ -3,6 +3,8 @@ import html
 from flask import Flask, render_template
 from flask_cors import CORS
 
+from src.yuno import codepage
+
 app = Flask("yuno")
 CORS(app)
 
@@ -28,7 +30,15 @@ def serve_builtins():
 
 @app.route("/codepage")
 def serve_codepage():
-    return render_template("codepage.html")
+    return render_template("codepage.html", codepage = "\n".join(codepage.replace("\n", "¶")[i:][:16] for i in range(0, 256, 16)))
+
+@app.route("/sourcecode")
+def serve_source_code():
+    code = ""
+    for filename in ["utilities", "yunofuncs", "adverbs", "verbs", "constants", "yuno"]:
+        with open(f"src/{filename}.py", "r") as f:
+            code += f.read() + "\n"
+    return code
 
 if __name__ == "__main__":
     app.run(host = "0.0.0.0", port = 5105, debug = True)

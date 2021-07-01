@@ -1,3 +1,55 @@
+// COPIED: Razetime's APLGolf
+// SEE: https://github.com/razetime/APLgolf/blob/main/main.js
+
+// Following five functions are courtesy of dzaima
+function deflate(arr) {
+    return pako.deflateRaw(arr, {
+        "level": 9
+    });
+}
+
+function inflate(arr) {
+    return pako.inflateRaw(arr);
+}
+
+function TIOencode(str) {
+    let bytes = new TextEncoder("utf-8").encode(str);
+    return deflate(bytes);
+}
+
+function arrToB64(arr) {
+    var bytestr = "";
+    arr.forEach(c => bytestr += String.fromCharCode(c));
+    return btoa(bytestr).replace(/\+/g, "@").replace(/=+/, "");
+}
+
+function b64ToArr(str) {
+    return new Uint8Array([...atob(decodeURIComponent(str).replace(/@/g, "+"))].map(c => c.charCodeAt()))
+}
+
+// more help from dzaima here
+async function TIO(code, input, flags, lang) {
+    const encoder = new TextEncoder("utf-8");
+    let length = encoder.encode(code).length;
+    let iLength = encoder.encode(input).length;
+    let fLength = flags.length;
+    //  Vlang\u00001\u0000{language}\u0000F.code.tio\u0000{# of bytes in code}\u0000{code}F.input.tio\u0000{length of input}\u0000{input}Vargs\u0000{number of ARGV}{ARGV}\u0000R
+    let rBody = "Vlang\x001\x00" + lang + "\x00F.code.tio\x00" + length + "\x00" + code + "F.input.tio\x00" + iLength + "\x00" + input + "Vargs\x00" + fLength + flags.map(x => "\x00" + x).join("") + "\x00R";
+    rBody = TIOencode(rBody);
+    let fetched = await fetch("https://tio.run/cgi-bin/run/api/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: rBody
+    });
+    let read = (await fetched.body.getReader().read()).value;
+    let text = new TextDecoder('utf-8').decode(read);
+    return text.slice(16).split(text.slice(0, 16));
+}
+
+// -----------------------------------------------------------------------------
+
 function encode(obj) {
   return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
 }
@@ -37,30 +89,38 @@ let FLAGS = {
   "h": "help"
 };
 
+var canceled = {};
+var running = null;
+
 function execute_code() {
-  document.location = url();
-  let flagbox = document.getElementById("flags");
-  let outlabel = document.getElementById("tg-output");
-  outlabel.innerHTML = outlabel.innerHTML[0] + " STDOUT";
-  var input = prompt;
-  if (!$("#promptinstead").is(":checked")) {
-    var lines = stdin.value.split("\n");
-    lines.reverse();
-    input = (a => () => a.pop())(lines);
+  if (running) {
+    canceled[running] = true;
+    running = null;
+    $("#run").html("RUN");
+    output.value = "";
+    stderr.value = "request terminated by user"
+  } else {
+    let flagbox = document.getElementById("flags");
+    let outlabel = document.getElementById("tg-output");
+    outlabel.innerHTML = outlabel.innerHTML[0] + " STDOUT";
+    output.value = "";
+    stderr.value = "";
+    running = Math.random();
+    $("#run").html("RUNNING...");
+    program = "";
+    if (header.value) program += header.value + "\n";
+    program += code.value;
+    if (footer.value) program += "\n" + footer.value;
+    (r => fetch("/sourcecode").then(x => x.text()).then(code => TIO(code, stdin.value, [flagbox.value, program, ...[...$(".argbox>textarea")].map(x => x.value)], "python3")).then(result => {
+      if (!canceled[r]) {
+        output.value = result[0];
+        stderr.value = result[1] || "";
+        updateHeight(output);
+        $("#run").html("RUN");
+        running = null;
+      }
+    }))(running);
   }
-  output.value = "";
-  stderr.value = "";
-  var flags = {};
-  for (var x of Object.keys(FLAGS)) {
-    flags[FLAGS[x]] = flagbox.value.indexOf(x) != -1;
-  }
-  execute((header.value && header.value + "\n") + code.value + (footer.value && "\n" + footer.value), [...$(".argbox>textarea")].map(x => x.value), input, x => {
-    var limit = flags["cap_k"] ? 1000 : flags["cap_tenk"] ? 10000 : 131072;
-    output.value += x;
-    output.value = output.value.substring(0, limit);
-    if (!flags["cap_off"] && output.value.length >= limit) throw "output has exceeded the limit";
-  }, x => stderr.value += x, flags);
-  updateHeight(output);
 }
 
 var counter = 0;

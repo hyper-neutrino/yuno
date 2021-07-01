@@ -100,3 +100,8 @@ Again, step through these rules, and `λ` is our value.
 (* only if the remainder of the chain starting at `1 ...` is an LCC)
 
 Also, again, if an unmatched nilad is encountered, output the current value, set `λ` to the nilad, and continue.
+
+### TODO
+
+- monad: is the current year a leap year?
+- monad: get the number of days in each month depending on the year
