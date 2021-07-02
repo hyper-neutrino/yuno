@@ -113,7 +113,9 @@ def parse_chain(chain, chains, links, outerindex, stack = None):
         stack = links[outerindex]
     index = 0
     while index < len(chain):
-        if chain[index].type == "verb":
+        if not hasattr(chain[index], "type"):
+            stack.append(chain[index])
+        elif chain[index].type == "verb":
             stack.append(chain[index].value)
         elif chain[index].type == "adverb":
             adverb = chain[index].value
@@ -146,7 +148,7 @@ def parse_chain(chain, chains, links, outerindex, stack = None):
             else:
                 subchain = stack[:]
                 stack[:] = []
-                arity = chains[index].arity
+                arity = chain[index].arity
                 stack.append(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args))(parse_chain(subchain, chains, links, outerindex, []), arity)))
         elif chain[index].type == "breaker":
             pass

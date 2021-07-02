@@ -402,3 +402,6 @@ def ut(call):
             return result.eval()
         return result
     return inner
+
+def const(x):
+    return attrdict(arity = 0, call = lambda: x)
