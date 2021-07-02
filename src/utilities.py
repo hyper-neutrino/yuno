@@ -4,6 +4,8 @@ import re
 import sympy
 import sys
 
+sys.setrecursionlimit(10 ** 9)
+
 DEFAULT_VECTORIZATION_STRATEGY = "overflow"
 SEQUENCE_MEMOIZATION = True
 
@@ -18,6 +20,16 @@ class attrdict(dict):
 	def __init__(self, *args, **kwargs):
 		dict.__init__(self, *args, **kwargs)
 		self.__dict__ = self
+
+class trampoline:
+    def __init__(self, link, arguments):
+        self.link = link
+        self.arguments = arguments
+    def eval(self):
+        return evaluate(self.link, len(self.arguments), *self.arguments)
+    def __str__(self):
+        print("A trampoline object was stringified. Unless you are debugging, this is likely an error.", file = sys.stderr)
+        return "[trampoline - %s]" % " - ".join([str(self.link), *map(str, self.arguments)])
 
 class sequence:
     def __init__(self, func, depth = 1):
@@ -159,8 +171,10 @@ def yunoify(value, deep = True):
         return sympy.Number(value)
     elif isinstance(value, complex):
         return yunoify(value.real) + yunoify(value.imag) * sympy.I
-    elif isinstance(value, list):
+    elif isinstance(value, (list, tuple, set)):
         return [yunoify(item, deep) for item in value]
+    elif isinstance(value, dict):
+        return [[yunoify(key, deep), yunoify(value, deep)] for key, value in value.items()]
     else:
         raise RuntimeError("failed to convert object to yuno-type; this error should be caught - if you are seeing this, something went wrong")
 
@@ -249,7 +263,7 @@ def vjoin(f, left, right, strategy = None):
     raise "unknown vectorization strategy " + str(strategy)
 
 def is_str(x):
-    return isinstance(x, list) and all(isinstance(c, str) for c in x)
+    return isinstance(x, list) and x and all(isinstance(c, str) for c in x)
 
 def unyunoify_strs(x):
     if is_str(x):
@@ -355,6 +369,9 @@ def make_iterable(x, singleton = False, make_range = False, string = False, meth
 def numify(x):
     return codepage.find(x) if isinstance(x, str) else x
 
+def ch2s(x):
+    return [x] if isinstance(x, str) else x
+
 def b2i(x):
     return 1 if x else 0
 
@@ -369,3 +386,19 @@ def reim(x):
 
 def cpchr(x):
     return codepage[x % 256]
+
+def variadic_call(link, x, y):
+    if link.arity == 0:
+        return link.call()
+    elif link.arity == 1:
+        return link.call(x)
+    else:
+        return link.call(x, y)
+
+def ut(call):
+    def inner(*a, **k):
+        result = call(*a, **k)
+        if isinstance(result, trampoline):
+            return result.eval()
+        return result
+    return inner

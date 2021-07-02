@@ -2,6 +2,12 @@
 def ysum(x):
     return reduce(verbs["+"].call, make_iterable(x, singleton = True), default = 0)
 
+@Verb("½", arity = 1, ldepth = 1, lstr_obj = True)
+def square_root(x):
+    if is_str(x):
+        raise RuntimeError("`½` not implemented on str")
+    return sympy.sqrt(x)
+
 @Verb("β", arity = 2, ldepth = 1, rdepth = 0)
 def yfrombase(x, y):
     x = make_iterable(x, singleton = True)
@@ -11,10 +17,21 @@ def yfrombase(x, y):
     else:
         return from_base(x, y)
 
+@Verb("ι", arity = 1, ldepth = 0)
+def upper_range(x):
+    if isinstance(x, str):
+        return char_range("A", x)
+    return ynrange(x, "upper")
+
 @Verb("!", arity = 1, ldepth = 0, lstr_obj = True)
 def factorial(x):
     if is_str(x):
-        raise RuntimeError("`!` not implemented on str")
+        length = math.ceil(math.sqrt(len(x)))
+        x += [" "] * (length ** 2 - len(x))
+        result = []
+        for i in range(0, length ** 2, length):
+            result.append(x[i:i + length])
+        return result
     return sympy.gamma(x + 1)
 
 @Verb("%", arity = 2, ldepth = 0, rdepth = 0, lstr_obj = True, rstr_obj = True)
@@ -199,11 +216,9 @@ def uniquify(x):
     else:
         return unique_sequence(x)
 
-@Verb("R", arity = 1, ldepth = 0)
-def upper_range(x):
-    if isinstance(x, str):
-        return char_range("A", x)
-    return ynrange(x, "upper")
+@Verb("R", arity = 1)
+def flat_reverse(x):
+    return make_iterable(x, singleton = True)[::-1]
 
 @Verb("T", arity = 1)
 def truthy_indices(x):
@@ -577,6 +592,59 @@ def mul(x, y):
             return [" "] * (x - len(y)) + y
         else:
             return x * y
+
+@Verb("÷", arity = 2, ldepth = 0, rdepth = 0, lstr_obj = True, rstr_obj = True)
+def div(x, y):
+    x = ch2s(x)
+    y = ch2s(y)
+    if is_str(x):
+        if is_str(y):
+            match = re.match("".join(y), "".join(x))
+            return match.group() if match else []
+        else:
+            x = "".join(x).split("\n")
+            result = []
+            for a in x:
+                for i in range(0, len(a), y):
+                    result.append(list(a[i:i + y]))
+            return result
+    else:
+        if is_str(y):
+            return div(y, x)
+        else:
+            return x / y
+
+@Verb("¬", arity = 1, ldepth = 0)
+def logical_not(x):
+    return b2i(not x)
+
+@Verb("‘", arity = 1, ldepth = 0, lstr_obj = True)
+def decrement(x):
+    if isinstance(x, str):
+        return cpchr(codepage.find(x) - 1)
+    elif is_str(x):
+        if x == ["Γ"]:
+            return []
+        elif x[-1] == "Γ":
+            return decrement(x[:-1], True) + ["”"]
+        else:
+            return x[:-1] + [cpchr(codepage.find(x[-1]) - 1)]
+    else:
+        return x - 1
+
+@Verb("’", arity = 1, ldepth = 0, lstr_obj = True)
+def increment(x):
+    if isinstance(x, str):
+        return cpchr(codepage.find(x) + 1)
+    elif is_str(x):
+        if x == ["”"]:
+            return ["Γ", "Γ"]
+        elif x[-1] == "”":
+            return increment(x[:-1], True) + ["Γ"]
+        else:
+            return x[:-1] + [cpchr(codepage.find(x[-1]) + 1)]
+    else:
+        return x + 1
 
 for x in "³⁴⁵⁶⁷⁸⁹αω":
     Verb(x, arity = 0)(lambda: 0)

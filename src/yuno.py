@@ -9,80 +9,104 @@ def isLCC(chain):
     return chain and [link.arity for link in chain] + [1] < [0, 2] * len(chain)
 
 def evaluate(chain, arity, *args):
-    verbs["α"].call = (lambda x: lambda: x)(list("yuno by hyper-neutrino") if arity < 1 else args[0])
-    verbs["ω"].call = (lambda x: lambda: x)([] if arity < 2 else args[1])
+    while True:
+        verbs["α"].call = (lambda x: lambda: x)(list("yuno by hyper-neutrino") if arity < 1 else args[0])
+        verbs["ω"].call = (lambda x: lambda: x)([] if arity < 2 else args[1])
 
-    x = None if arity < 1 else args[0]
-    y = None if arity < 2 else args[1]
+        x = None if arity < 1 else args[0]
+        y = None if arity < 2 else args[1]
 
-    chain = chain[:]
-    value = None
+        chain = chain[:]
+        value = None
 
-    if arity == 0:
-        if chain and chain[0].arity == 0:
-            x = chain.pop(0).call()
-        else:
-            x = 0
-        arity = 1
+        if arity == 0:
+            if chain and chain[0].arity == 0:
+                x = chain.pop(0).call()
+            else:
+                x = 0
+            arity = 1
 
-    if arity == 1:
-        if isLCC(chain):
-            value = chain.pop(0).call()
-        else:
-            value = x
+        if arity == 1:
+            if isLCC(chain):
+                x = ut(x)
+                value = chain.pop(0).call()
+            else:
+                value = x
 
-        while chain:
-            if len(chain) >= 2:
-                if chain[0].arity == 2 and chain[1].arity == 1:
-                    value = chain.pop(0).call(value, chain.pop(0).call(x))
+            while chain:
+                if isinstance(value, trampoline):
+                    value = value.eval()
+                if len(chain) >= 2:
+                    if chain[0].arity == 2 and chain[1].arity == 1:
+                        value = chain.pop(0).call(value, ut(chain.pop(0).call)(x))
+                        continue
+                    if chain[0].arity == 2 and chain[1].arity == 0:
+                        value = chain.pop(0).call(value, ut(chain.pop(0).call)())
+                        continue
+                    if chain[0].arity == 0 and chain[1].arity == 2:
+                        value = chain.pop(1).call(ut(chain.pop(0).call)(), value)
+                        continue
+                if chain[0].arity == 2:
+                    value = chain.pop(0).call(value, x)
                     continue
-                if chain[0].arity == 2 and chain[1].arity == 0:
-                    value = chain.pop(0).call(value, chain.pop(0).call())
+                if chain[0].arity == 1:
+                    value = chain.pop(0).call(value)
                     continue
-                if chain[0].arity == 0 and chain[1].arity == 2:
-                    value = chain.pop(1).call(chain.pop(0).call(), value)
-                    continue
-            if chain[0].arity == 2:
-                value = chain.pop(0).call(value, x)
+                yuno_output(value)
+                value = chain.pop(0).call()
+
+            if isinstance(value, trampoline):
+                chain = value.link
+                arity = len(value.arguments)
+                args = value.arguments
                 continue
-            if chain[0].arity == 1:
-                value = chain.pop(0).call(value)
-                continue
-            yuno_output(value)
-            value = chain.pop(0).call()
+            else:
+                return value
 
-    if arity == 2:
-        if len(chain) >= 3 and chain[0].arity == chain[1].arity == chain[2].arity == 2:
-            value = chain.pop(0).call(x, y)
-        elif isLCC(chain):
-            value = chain.pop(0).call()
-        else:
-            value = x
+        if arity == 2:
+            if len(chain) >= 3 and chain[0].arity == chain[1].arity == chain[2].arity == 2:
+                x = ut(x)
+                value = chain.pop(0).call(x, y)
+            elif isLCC(chain):
+                x = ut(x)
+                value = chain.pop(0).call()
+            else:
+                value = x
 
-        while chain:
-            if len(chain) >= 3 and chain[0].arity == chain[1].arity == 2 and isLCC(chain[2:]):
-                value = chain.pop(1).call(chain.pop(0).call(value, y), chain.pop(1).call())
-                continue
-            if len(chain) >= 2:
-                if chain[0].arity == chain[1].arity == 2:
-                    value = chain.pop(0).call(value, chain.pop(1).call(x, y))
+            while chain:
+                if isinstance(value, trampoline):
+                    value = value.eval()
+                if len(chain) >= 3 and chain[0].arity == chain[1].arity == 2 and isLCC(chain[2:]):
+                    value = chain.pop(1).call(ut(chain.pop(0).call)(value, y), ut(chain.pop(1).call)())
                     continue
-                if chain[0].arity == 2 and chain[1].arity == 0:
-                    value = chain.pop(0).call(value, chain.pop(0).call())
+                if len(chain) >= 2:
+                    if chain[0].arity == chain[1].arity == 2:
+                        value = chain.pop(0).call(value, ut(chain.pop(0).call)(x, y))
+                        continue
+                    if chain[0].arity == 2 and chain[1].arity == 0:
+                        value = chain.pop(0).call(value, ut(chain.pop(0).call)())
+                        continue
+                    if chain[0].arity == 0 and chain[1].arity == 2:
+                        value = chain.pop(1).call(ut(chain.pop(0).call)(), value)
+                        continue
+                if chain[0].arity == 2:
+                    value = chain.pop(0).call(value, y)
                     continue
-                if chain[0].arity == 0 and chain[1].arity == 2:
-                    value = chain.pop(1).call(chain.pop(0).call, value)
+                if chain[0].arity == 1:
+                    value = chain.pop(0).call(value)
                     continue
-            if chain[0].arity == 2:
-                value = chain.pop(0).call(value, y)
-                continue
-            if chain[0].arity == 1:
-                value = chain.pop(0).call(value)
-                continue
-            yuno_output(value)
-            value = chain.pop(0).call()
+                yuno_output(value)
+                value = chain.pop(0).call()
 
-    return value
+            if isinstance(value, trampoline):
+                chain = value.link
+                arity = len(value.arguments)
+                args = value.arguments
+                continue
+            else:
+                return value
+
+        return value
 
 def parse_chain(chain, chains, links, outerindex, stack = None):
     if stack is None:
@@ -118,17 +142,18 @@ def parse_chain(chain, chains, links, outerindex, stack = None):
                     if bal:
                         inner.append(chain[index])
                         index += 1
-                stack.push(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args))(parse_chain(inner, chains, links, outerindex, []), arity)))
+                stack.append(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args))(parse_chain(inner, chains, links, outerindex, []), arity)))
             else:
                 subchain = stack[:]
                 stack[:] = []
                 arity = chains[index].arity
-                stack.push(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args))(parse_chain(subchain, chains, links, outerindex, []), arity)))
+                stack.append(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args))(parse_chain(subchain, chains, links, outerindex, []), arity)))
         elif chain[index].type == "breaker":
             pass
         else:
             raise RuntimeError(f"unidentified item when parsing the chain: {chain[index]}")
         index += 1
+    return stack
 
 def parse(chains):
     links = [[] for _ in chains]
