@@ -15,27 +15,6 @@ def deep_recurse(link):
         return x[0]
     return attrdict(arity = max(link.arity, 1), call = _inner)
 
-@Adverb("φ", lambda x: len(x) == 1, fail = lambda inner, links, outerindex: nth_link_nilad([attrdict(arity = 0, call = lambda: 1)], links, outerindex))
-def nth_link_nilad(inner, links, outerindex):
-    position = (inner[0].call(*map(lambda k: verbs[k].call(), ["α", "ω"][:inner[0].arity])) - 1) % (len(links) - 1)
-    if position >= outerindex:
-        position += 1
-    return attrdict(arity = 0, call = lambda: trampoline(links[position], []))
-
-@Adverb("χ", lambda x: len(x) == 1, fail = lambda inner, links, outerindex: nth_link_nilad([attrdict(arity = 0, call = lambda: 1)], links, outerindex))
-def nth_link_monad(inner, links, outerindex):
-    position = (inner[0].call(*map(lambda k: verbs[k].call(), ["α", "ω"][:inner[0].arity])) - 1) % (len(links) - 1)
-    if position >= outerindex:
-        position += 1
-    return attrdict(arity = 1, call = lambda x: trampoline(links[position], [x]))
-
-@Adverb("ψ", lambda x: len(x) == 1, fail = lambda inner, links, outerindex: nth_link_nilad([attrdict(arity = 0, call = lambda: 1)], links, outerindex))
-def nth_link_dyad(inner, links, outerindex):
-    position = (inner[0].call(*map(lambda k: verbs[k].call(), ["α", "ω"][:inner[0].arity])) - 1) % (len(links) - 1)
-    if position >= outerindex:
-        position += 1
-    return attrdict(arity = 2, call = lambda x, y: trampoline(links[position], [x, y]))
-
 @Adverb("?", lambda x: len(x) == 3, fail = lambda inner, links, outerindex: conditional(inner, links, outerindex))
 def conditional(inner, links, outerindex):
     if len(inner) == 0:
@@ -185,14 +164,35 @@ def this_link_monad(inner, links, outerindex):
 def this_link_dyad(inner, links, outerindex):
     return attrdict(arity = 2, call = lambda x, y: trampoline(links[outerindex], [x, y]))
 
-@Adverb("ի", lambda x: True)
+@Adverb("ɵԻ", lambda x: True)
 def next_link_nilad(inner, links, outerindex):
     return attrdict(arity = 0, call = lambda: trampoline(links[(outerindex + 1) % len(links)], []))
 
-@Adverb("ը", lambda x: True)
+@Adverb("ɵԸ", lambda x: True)
 def next_link_monad(inner, links, outerindex):
     return attrdict(arity = 1, call = lambda x: trampoline(links[(outerindex + 1) % len(links)], [x]))
 
-@Adverb("թ", lambda x: True)
+@Adverb("ɵԹ", lambda x: True)
 def next_link_dyad(inner, links, outerindex):
     return attrdict(arity = 2, call = lambda x, y: trampoline(links[(outerindex + 1) % len(links)], [x, y]))
+
+@Adverb("ɵɨ", lambda x: len(x) == 1, fail = lambda inner, links, outerindex: nth_link_nilad([attrdict(arity = 0, call = lambda: 1)], links, outerindex))
+def nth_link_nilad(inner, links, outerindex):
+    position = (inner[0].call(*map(lambda k: verbs[k].call(), ["α", "ω"][:inner[0].arity])) - 1) % (len(links) - 1)
+    if position >= outerindex:
+        position += 1
+    return attrdict(arity = 0, call = lambda: trampoline(links[position], []))
+
+@Adverb("ɵɫ", lambda x: len(x) == 1, fail = lambda inner, links, outerindex: nth_link_nilad([attrdict(arity = 0, call = lambda: 1)], links, outerindex))
+def nth_link_monad(inner, links, outerindex):
+    position = (inner[0].call(*map(lambda k: verbs[k].call(), ["α", "ω"][:inner[0].arity])) - 1) % (len(links) - 1)
+    if position >= outerindex:
+        position += 1
+    return attrdict(arity = 1, call = lambda x: trampoline(links[position], [x]))
+
+@Adverb("ɵɬ", lambda x: len(x) == 1, fail = lambda inner, links, outerindex: nth_link_nilad([attrdict(arity = 0, call = lambda: 1)], links, outerindex))
+def nth_link_dyad(inner, links, outerindex):
+    position = (inner[0].call(*map(lambda k: verbs[k].call(), ["α", "ω"][:inner[0].arity])) - 1) % (len(links) - 1)
+    if position >= outerindex:
+        position += 1
+    return attrdict(arity = 2, call = lambda x, y: trampoline(links[position], [x, y]))
