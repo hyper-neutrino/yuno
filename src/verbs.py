@@ -318,7 +318,16 @@ def index_into(x, y):
     if isinstance(x, str):
         raise RuntimeError("`ɨ` not implemented for chr, any")
     y = make_iterable(y, singleton = True)
-    pass
+    re, im = reim(x)
+    if im == 0:
+        if re % 1 == 0:
+            if isinstance(y, list):
+                return y[(int(re) - oneindex) % len(y)]
+            return y[int(re) - oneindex]
+        k = float(re)
+        return [index_into(math.floor(k), y), index_into(math.ceil(k), y)]
+    else:
+        return [index_into(re, y), index_into(im, y)]
 
 @Verb("ɲ", arity = 2)
 def left_argument(x, y):
@@ -523,10 +532,6 @@ def force_chr(x):
     if isinstance(x, str):
         return x
     return cpchr(x)
-
-@Verb("ᴍI", arity = 0)
-def nilad_inf():
-    return infinity
 
 @Verb("ᴍO", arity = 1, ldepth = 0)
 def force_ord(x):

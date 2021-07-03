@@ -109,31 +109,43 @@ def evaluate(chain, arity, *args):
         return value
 
 def parse_chain(chain, chains, links, outerindex, stack = None):
+    debug("parsing chain:")
+    for link in chain:
+        debug("-", link)
     if stack is None:
         stack = links[outerindex]
     index = 0
     while index < len(chain):
         if not hasattr(chain[index], "type"):
+            debug("pre-parsed item has been pushed to the stack:", chain[index])
             stack.append(chain[index])
         elif chain[index].type == "verb":
+            debug("verb has been pushed to the stack:", chain[index].value)
             stack.append(chain[index].value)
         elif chain[index].type == "adverb":
+            debug("adverb encountered:", chain[index].value)
             adverb = chain[index].value
             inner = []
             while stack and not adverb.condition(inner):
+                debug("adverb needs more links: popping:", stack[-1])
                 inner.insert(0, stack.pop())
             if adverb.condition(inner):
+                debug("adverb succeeded")
                 verbs = adverb.call(inner, links, outerindex)
             elif adverb.fail is not None:
+                debug("adverb failed")
                 verbs = adverb.fail(inner, links, outerindex)
             else:
                 raise RuntimeError(f"adverb `{chain[index].name}` failed to meet its condition and does not have a default behavior")
             if not isinstance(verbs, list):
                 verbs = [verbs]
+            debug("adverb pushing links:")
             for verb in verbs:
+                debug("-", verb)
                 stack.append(verb)
         elif chain[index].type == "bracket":
             if chain[index].open:
+                debug("open bracket encountered:")
                 arity = chain[index].arity
                 index += 1
                 bal = 1
@@ -142,19 +154,25 @@ def parse_chain(chain, chains, links, outerindex, stack = None):
                     if chain[index].type == "bracket" and chain[index].arity == arity:
                         bal += chain[index].open * 2 - 1
                     if bal:
+                        debug("- pushed", chain[index])
                         inner.append(chain[index])
                         index += 1
+                    else:
+                        debug("- balanced; exiting")
                 stack.append(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args))(parse_chain(inner, chains, links, outerindex, []), arity)))
             else:
+                debug("close bracket encountered")
                 subchain = stack[:]
                 stack[:] = []
                 arity = chain[index].arity
+                debug("- feeding subchain:", subchain)
                 stack.append(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args))(parse_chain(subchain, chains, links, outerindex, []), arity)))
         elif chain[index].type == "breaker":
             pass
         else:
             raise RuntimeError(f"unidentified item when parsing the chain: {chain[index]}")
         index += 1
+    debug("=" * 40)
     return stack
 
 def parse(chains):
@@ -215,6 +233,10 @@ def strand(line):
             output.append(x)
     if literals:
         output.append(lit2verb(collapse(literals)))
+    debug("stranded line:")
+    for item in output:
+        debug("-", item)
+    debug("=" * 40)
     return output
 
 def parse_number(x):
@@ -241,13 +263,17 @@ def parse_number(x):
         return sympy.Integer(x)
 
 def tokenize(code):
+    debug("begin tokenization")
     lines = [[]]
     index = 0
     while index < len(code):
-        if code[index] == "\n" and (index == 0 or code[index - 1] != "ᴋ"):
+        if code[index] == "\n":
+            debug("tk: new link")
             lines.append([])
         elif code[index] in "“”0123456789-.ɪʙᴇғˌ‼[]":
+            debug("tk: literal")
             if code[index] == "“":
+                debug(": tk: string")
                 index += 1
                 literal = [[]]
                 while index < len(code):
@@ -275,9 +301,11 @@ def tokenize(code):
                 if len(literal) == 1:
                     literal = literal[0]
             elif code[index] == "”":
+                debug(": tk: character")
                 index += 1
                 literal = code[index] if index < len(code) else " "
             elif code[index] in "0123456789-.ɪʙᴇғ":
+                debug(": tk: number")
                 _re = "-?\\d*(\\.\\d*)?"
                 _fr = "(" + _re + "(ғ" + _re + ")?)"
                 _bn = "(" + _fr + "(ʙ" + _fr + ")?)"
@@ -287,27 +315,36 @@ def tokenize(code):
                 index += len(item) - 1
                 literal = parse_number(item)
             elif code[index] == "ˌ":
+                debug(": tk: double string")
                 literal = list(code[index + 1:][:2].ljust(2))
                 index += 2
             elif code[index] == "‼":
+                debug(": tk: short compressed number")
                 string = (code[index + 1:] + "ΓΓ")[:2]
                 index += 2
                 literal = from_base([codepage.find(char) + 1 for char in string], 256) + 744
                 if literal > 33318:
                     literal -= 66637
             elif code[index] == "[":
+                debug(": tk: open list")
                 literal = "open"
             elif code[index] == "]":
+                debug(": tk: close list")
                 literal = "close"
             lines[-1].append(attrdict(type = "literal", value = literal))
         elif code[index] == "ǂ":
+            debug("tk: breaker")
             lines[-1].append(attrdict(type = "breaker"))
         elif code[index] in "(){}┝┥":
-            lines[-1].append(attrdict(type = "bracket", open = code[index] in "({┝", arity = "┝({┥)}".find(code[index]) % 3))
+            arity = "┝({┥)}".find(code[index]) % 3
+            open = code[index] in "({┝"
+            debug(f"tk: subfunction group: arity = {arity}: open = {open}")
+            lines[-1].append(attrdict(type = "bracket", open = open, arity = arity))
         else:
             for type, item in [["verb", verbs], ["adverb", adverbs]]:
                 for key in item:
                     if code[index:].startswith(key):
+                        debug(f"tk: {type}: {key}")
                         index += len(key) - 1
                         lines[-1].append(attrdict(type = type, value = item[key], name = key))
                         break
@@ -315,9 +352,13 @@ def tokenize(code):
                     continue
                 break
         index += 1
+    debug("=" * 40)
     return map(strand, lines)
 
 def execute(code, args, flags):
+    debug("executing code:")
+    debug(code)
+    debug("=" * 40)
     if "h" in flags:
         print("""
             L - display singleton lists as lists
@@ -334,13 +375,15 @@ def execute(code, args, flags):
             d - disable implicit output
             n - output a newline at the end
             M - don't memoize sequence calls (warning - performance may degrage significantly)
+            v - verbose debug output
             h - display this help message
         """[1:-9].replace(" " * 12, ""), end = "")
         return
 
-    args = list(map(tryeval, args))
     for symbol, arg in zip("³⁴⁵⁶⁷⁸⁹", args + ["\n", " ", 64, 32, 100, 256, 10][len(args):]):
+        debug(f"set `{symbol}` to {repr(arg)}")
         verbs[symbol].call = (lambda val: lambda: val)(arg)
+    debug("=" * 40)
 
     filtered = ""
 
@@ -348,13 +391,17 @@ def execute(code, args, flags):
         if char == "¶":
             char = "\n"
         if char not in codepage:
-            print(f"`{char}` is not in the codepage and has been removed", file = sys.stderr)
+            debug(f"`{char}` is not in the codepage and has been removed", file = sys.stderr)
         else:
             filtered += char
 
     chains = tokenize(filtered)
     parsed = parse(chains)
     result = evaluate(parsed[-1], min(len(args), 2), *args[:2])
+
+    debug("retrieved result:")
+    debug(repr(result))
+    debug("=" * 40)
 
     if "j" in flags or "s" in flags:
         joiner = "\n" if "j" in flags else " "
@@ -379,4 +426,5 @@ def execute(code, args, flags):
         print()
 
 if __name__ == "__main__":
-    execute(sys.argv[2], sys.argv[3:], sys.argv[1])
+    args = list(map(tryeval, sys.argv[3:]))
+    execute(sys.argv[2], args, sys.argv[1])

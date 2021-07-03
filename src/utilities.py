@@ -16,6 +16,10 @@ oneindex = "0" not in flags
 
 infinity = sympy.oo
 
+def debug(*a, **k):
+    if "v" in flags:
+        print(*a, **k, file = sys.stderr)
+
 class attrdict(dict):
 	def __init__(self, *args, **kwargs):
 		dict.__init__(self, *args, **kwargs)
@@ -159,6 +163,22 @@ class filter_sequence(sequence):
                     self.forward.append(value)
                 self.fscan += 1
             return self.forward[index]
+
+class cumulative_reduce_sequence(sequence):
+    def __init__(self, f, seq):
+        sequence.__init__(self, self.func)
+        self.seq = seq
+        self.f = f
+        self.found = [seq[0]]
+        self.fscan = 1
+    def func(self, index):
+        if index < 0:
+            raise RuntimeError("cannot get elements left of origin of a cumulative reduce sequence")
+        else:
+            while len(self.found) <= index:
+                self.found.append(self.f(self.found[-1], self.seq[self.fscan]))
+                self.fscan += 1
+            return self.found[index]
 
 def yunoify(value, deep = True):
     if not isinstance(value, list) and not deep or isinstance(value, sympy.Basic):

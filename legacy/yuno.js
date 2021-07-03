@@ -789,8 +789,6 @@ let deep_element_count = x => {
   return count;
 };
 
-
-
 let absref = arity => ({
   "condition": hyper,
   "call": (links, outers, index) => ({

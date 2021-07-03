@@ -103,8 +103,6 @@ function execute_code() {
     let flagbox = document.getElementById("flags");
     let outlabel = document.getElementById("tg-output");
     outlabel.innerHTML = outlabel.innerHTML[0] + " STDOUT";
-    output.value = "";
-    stderr.value = "";
     running = Math.random();
     $("#run").html("RUNNING...");
     program = "";
