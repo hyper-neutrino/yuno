@@ -106,3 +106,6 @@ Also, again, if an unmatched nilad is encountered, output the current value, set
 - monad: is the current year a leap year?
 - monad: get the number of days in each month depending on the year
 - monad and dyad (digraphs): square root a list w/w/o filler
+- monad: convert between degree types
+- monad: join on newlines
+- monad: join on spaces

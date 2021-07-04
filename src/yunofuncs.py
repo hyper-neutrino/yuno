@@ -204,3 +204,10 @@ def while_loop(loop, condition, keep = False):
             return value
 
     return attrdict(arity = loop.arity, call = _inner)
+
+def suffixes(x):
+    x = make_iterable(x, make_range = True)
+    if isinstance(x, list):
+        return [x[i:] for i in range(len(x) - 1)]
+    else:
+        raise RuntimeError("cannot take suffixes of an infinite sequence")

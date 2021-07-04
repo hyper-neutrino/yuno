@@ -15,6 +15,15 @@ def deep_recurse(link):
         return x[0]
     return attrdict(arity = max(link.arity, 1), call = _inner)
 
+@Hyper('"')
+def vectorize_once(link):
+    if link.arity == 0:
+        raise RuntimeError("cannot vectorize a nilad")
+    elif link.arity == 1:
+        return attrdict(arity = 1, call = lambda x: map(ut(link.call), x) if isinstance(x, (list, sequence)) else ut(link.call)(x))
+    else:
+        return attrdict(arity = 2, call = lambda x, y: (vjoin(ut(link.call), x, y) if isinstance(y, (list, sequence)) else map(lambda a: ut(link.call)(a, y), x)) if isinstance(x, (list, sequence)) else (map(lambda a: ut(link.call)(x, a), y) if isinstance(y, (list, sequence)) else link.call(x, y)))
+
 @Adverb("?", lambda x: len(x) == 3, fail = lambda inner, links, outerindex: conditional(inner, links, outerindex))
 def conditional(inner, links, outerindex):
     if len(inner) == 0:
@@ -140,6 +149,54 @@ class bidirectional_recursive_sequence(sequence):
                     self.forward.append(self.advance(*self.forward[-self.f_arity:]))
             return self.forward[index]
 
+@Adverb("ᴛ", lambda x: x and ((x[-1].arity == 0 and len(x) == int(reim(x[-1].call())[0]) + 1) or (x[-1].arity != 0 and len(x) == 2)))
+def tie(inner, links, outerindex):
+    if inner[-1].arity == 0:
+        inner.pop()
+    def _inner(*x):
+        inner.append(inner.pop(0))
+        return inner[-1].call(*x[:inner[-1].arity])
+    return attrdict(arity = max(link.arity for link in inner), call = _inner)
+
+@Adverb("ʈ", lambda x: x and ((x[-1].arity == 0 and len(x) == int(reim(x[-1].call())[0]) + 1) or (x[-1].arity != 0 and len(x) == 2)))
+def cleave(inner, links, outerindex):
+    if inner[-1].arity == 0:
+        inner.pop()
+    def _inner(*x):
+        return [ut(link.call)(*x[:link.arity]) for link in inner]
+    return attrdict(arity = max(link.arity for link in inner), call = _inner)
+
+@Hyper("Ͼ")
+def map_over(link):
+    if link.arity == 0:
+        return attrdict(arity = 1, call = lambda x: map(lambda a: ut(link.call)(), make_iterable(x, make_range = True)))
+    elif link.arity == 1:
+        return attrdict(arity = 1, call = lambda x: map(ut(link.call), make_iterable(x, make_range = True)))
+    else:
+        return attrdict(arity = 2, call = lambda x, y: map(lambda a: ut(link.call)(a, y), make_iterable(x, make_range = True)))
+
+@Hyper("Ͽ")
+def map_over_right(link):
+    return attrdict(arity = 2, call = lambda x, y: map(lambda a: ut(link.call)(*[x, a][:link.arity]), make_iterable(y, make_range = True)))
+
+@Hyper("ɵϾ")
+def deep_map_over(link):
+    if link.arity == 0:
+        return attrdict(arity = 1, call = Y(lambda f: lambda x: map(f(f), x) if isinstance(x, (list, sequence)) else ut(link.call)()))
+    elif link.arity == 1:
+        return attrdict(arity = 1, call = Y(lambda f: lambda x: map(f(f), x) if isinstance(x, (list, sequence)) else ut(link.call)(x)))
+    else:
+        return attrdict(arity = 2, call = Y(lambda f: lambda x, y: map(lambda a: f(f)(a, y), x) if isinstance(x, (list, sequence)) else ut(link.call)(x, y)))
+
+@Hyper("ɵϿ")
+def deep_map_over_right(link):
+    if link.arity == 0:
+        return attrdict(arity = 2, call = Y(lambda f: lambda x, y: map(f(f), y) if isinstance(y, (list, sequence)) else ut(link.call)()))
+    elif link.arity == 1:
+        return attrdict(arity = 1, call = Y(lambda f: lambda x, y: map(f(f), y) if isinstance(y, (list, sequence)) else ut(link.call)(x)))
+    else:
+        return attrdict(arity = 2, call = Y(lambda f: lambda x, y: map(lambda a: f(f)(x, a), y) if isinstance(y, (list, sequence)) else ut(link.call)(x, y)))
+
 @Adverb("Ի", lambda x: True)
 def last_link_nilad(inner, links, outerindex):
     return attrdict(arity = 0, call = lambda: trampoline(links[(outerindex - 1) % len(links)], []))
@@ -196,3 +253,14 @@ def nth_link_dyad(inner, links, outerindex):
     if position >= outerindex:
         position += 1
     return attrdict(arity = 2, call = lambda x, y: trampoline(links[position], [x, y]))
+
+for symbol, arity, length in zip("$ΦΨχφψ", [1] * 3 + [2] * 3, [2, 3, 4] * 2):
+    (lambda symbol = symbol, arity = arity, length = length: Adverb(symbol, lambda x: len(x) - sum(map(isLCC, suffixes(x)[:-1])) >= length)(lambda inner, links, outerindex: attrdict(arity = arity, call = lambda *x: evaluate(inner, arity, *x))))()
+
+@Adverb("°", lambda x: len(x) > 1 and isLCC(x))
+def nilad_group(inner, links, outerindex):
+    return attrdict(arity = 0, call = lambda: evaluate(inner, arity = 0))
+
+@Adverb("'", lambda x: isLCC(x), seek_forward = True)
+def LCC_group(inner, links, outerindex):
+    return attrdict(arity = 0, call = lambda: evaluate(inner, arity = 0))

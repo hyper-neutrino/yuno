@@ -116,6 +116,9 @@ function execute_code() {
         updateHeight(output);
         $("#run").html("RUN");
         running = null;
+        if (output.value == "https://www.youtube.com/watch?v=dQw4w9WgXcQ") {
+          document.location.replace("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+        }
       }
     }))(running);
   }
@@ -244,3 +247,5 @@ $(document).ready(e => {
     toggle(t, u);
   });
 });
+
+window.onbeforeunload = () => 1;

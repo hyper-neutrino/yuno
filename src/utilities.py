@@ -207,15 +207,15 @@ def tryeval(string):
 adverbs = {}
 verbs = {}
 
-def Adverb(symbol, condition, fail = None):
+def Adverb(symbol, condition, fail = None, seek_forward = False):
     def _inner(call):
-        adverbs[symbol] = attrdict(condition = condition, call = call, fail = fail)
+        adverbs[symbol] = attrdict(condition = condition, call = call, fail = fail, seek_forward = seek_forward)
         return adverbs[symbol].call
     return _inner
 
 def Hyper(symbol, default_link = None):
     def _inner(call):
-        adverbs[symbol] = attrdict(condition = lambda x: len(x) == 1, call = lambda links, outer, index: call(links[0]), fail = default_link and (lambda links, outer, index: call(verbs[default_link])))
+        adverbs[symbol] = attrdict(condition = lambda x: len(x) == 1, call = lambda links, outer, index: call(links[0]), fail = default_link and (lambda links, outer, index: call(verbs[default_link])), seek_forward = False)
         return adverbs[symbol].call
     return _inner
 
@@ -425,3 +425,6 @@ def ut(call):
 
 def const(x):
     return attrdict(arity = 0, call = lambda: x)
+
+def Y(f):
+    return f(f)

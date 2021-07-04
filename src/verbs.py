@@ -49,6 +49,21 @@ def modulo(x, y):
         else:
             return x % y
 
+@Verb("&", arity = 2, ldepth = 0, rdepth = 0)
+def bitwise_and(x, y):
+    if isinstance(x, str):
+        if isinstance(y, str):
+            raise RuntimeError("`&` not implemented on chr, chr")
+        else:
+            raise RuntimeError("`&` not implemented on chr, num")
+    else:
+        if isinstance(y, str):
+            raise RuntimeError("`&` not implemented num, chr")
+        else:
+            x = int(reim(x)[0])
+            y = int(reim(y)[0])
+            return x & y
+
 @Verb("*", arity = 2, ldepth = 0, rdepth = 0, lstr_obj = True, rstr_obj = True)
 def exponentiate(x, y):
     x = numify(x)
@@ -230,12 +245,52 @@ def upend(x):
     x = make_iterable(x, singleton = True)
     return x[::-1]
 
+@Verb("W", arity = 1)
+def wrap(x):
+    return [x]
+
 @Verb("Z", arity = 1)
 def matrix_transform(x):
     if isinstance(x, (list, sequence)):
         return transform(x)
     else:
         return [[x]]
+
+@Verb("^", arity = 2, ldepth = 0, rdepth = 0)
+def bitwise_xor(x, y):
+    if isinstance(x, str):
+        if isinstance(y, str):
+            raise RuntimeError("`^` not implemented on chr, chr")
+        else:
+            raise RuntimeError("`^` not implemented on chr, num")
+    else:
+        if isinstance(y, str):
+            raise RuntimeError("`^` not implemented num, chr")
+        else:
+            x = int(reim(x)[0])
+            y = int(reim(y)[0])
+            return x ^ y
+
+@Verb("|", arity = 2, ldepth = 0, rdepth = 0)
+def bitwise_or(x, y):
+    if isinstance(x, str):
+        if isinstance(y, str):
+            raise RuntimeError("`|` not implemented on chr, chr")
+        else:
+            raise RuntimeError("`|` not implemented on chr, num")
+    else:
+        if isinstance(y, str):
+            raise RuntimeError("`|` not implemented num, chr")
+        else:
+            x = int(reim(x)[0])
+            y = int(reim(y)[0])
+            return x | y
+
+@Verb("~", arity = 1, ldepth = 0)
+def bitwise_not(x):
+    if isinstance(x, str):
+        raise RuntimeError("`~` not implemented on chr")
+    return -1 - x
 
 @Verb("_", arity = 2, ldepth = 0, rdepth = 0)
 def subtract(x, y):
@@ -249,6 +304,10 @@ def subtract(x, y):
             return cpchr(codepage.find(y) + x)
         else:
             return x - y
+
+@Verb("a", arity = 2, ldepth = 0, rdepth = 0)
+def logical_and(x, y):
+    return x and y
 
 @Verb("b", arity = 2, ldepth = 0, rdepth = 0, lstr_obj = True, rstr_obj = True)
 def ytobase(x, y):
@@ -266,6 +325,35 @@ def ytobase(x, y):
             return map(lambda a: y[int(a)], to_base(x, len(y)))
         else:
             return to_base(x, y)
+
+@Verb("c", arity = 2)
+def count_occurrences(x, y):
+    x = make_iterable(x, singleton = True)
+    if isinstance(x, list):
+        return x.count(y)
+    else:
+        raise RuntimeError("cannot count occurrences in an infinite sequence")
+
+@Verb("ɔ", arity = 2)
+def advanced_count(x, y, k = 1):
+    if isinstance(x, list):
+        return x.count(y) + max(advanced_count(k, y, 0) for k in x)
+    elif isinstance(x, sequence):
+        raise RuntimeError("cannot count occurrences in an infinite sequence")
+    else:
+        return k
+
+@Verb("d", arity = 2, ldepth = 0, rdepth = 0)
+def div_mod(x, y):
+    return [verbs[":"].call(x, y), verbs["%"].call(x, y)]
+
+@Verb("e", arity = 2)
+def occurs_in(x, y):
+    y = make_iterable(y, singleton = True)
+    if isinstance(y, list):
+        return b2i(x in y)
+    else:
+        raise RuntimeError("cannot check occurrences in an infinite sequence")
 
 @Verb("i", arity = 2)
 def index_of(x, y):
@@ -366,6 +454,36 @@ def join_on_space(x):
 def output_with_newline(x):
     yuno_output(x, end = "\n")
     return x
+
+@Verb("ɵV", arity = 1)
+def yneval(x):
+    chains = tokenize(to_str(x))
+    parsed = parse(chains)
+    return evaluate(parsed[-1], 0)
+
+@Verb("ɵX", arity = 1)
+def ynrandom(x):
+    if isinstance(x, str):
+        raise RuntimeError("`ɵX` not implemented on chr")
+    elif isinstance(x, list):
+        return random.choice(x)
+    elif isinstance(x, sequence):
+        return map(ynrandom, x)
+    else:
+        x = int(reim(x)[0])
+        if x > 0:
+            return random.randint(1, x)
+        else:
+            return random.randint(x, 0)
+
+@Verb("ɵY", arity = 1)
+def join_on_newline(x):
+    if isinstance(x, list):
+        return list("\n".join(map(to_str, x)))
+    elif isinstance(x, sequence):
+        raise RuntimeError("cannot join infinite sequences")
+    else:
+        return list(to_str(x))
 
 @Verb("ɵ_", arity = 1)
 def output_without_newline(x):
@@ -650,6 +768,14 @@ def increment(x):
             return x[:-1] + [cpchr(codepage.find(x[-1]) + 1)]
     else:
         return x + 1
+
+@Verb("«", arity = 2, ldepth = 0, rdepth = 0)
+def minimum_between(x, y):
+    return min(x, y)
+
+@Verb("»", arity = 2, ldepth = 0, rdepth = 0)
+def maximum_between(x, y):
+    return max(x, y)
 
 for x in "³⁴⁵⁶⁷⁸⁹αω":
     Verb(x, arity = 0)(lambda: 0)

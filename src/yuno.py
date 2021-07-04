@@ -125,10 +125,17 @@ def parse_chain(chain, chains, links, outerindex, stack = None):
         elif chain[index].type == "adverb":
             debug("adverb encountered:", chain[index].value)
             adverb = chain[index].value
-            inner = []
-            while stack and not adverb.condition(inner):
-                debug("adverb needs more links: popping:", stack[-1])
-                inner.insert(0, stack.pop())
+            if adverb.seek_forward:
+                inner = stack[:]
+                stack[:] = []
+                while inner and not adverb.condition(inner):
+                    debug("adverb rejected this chain sequence: returning to stack:", inner[0])
+                    stack.append(inner.pop(0))
+            else:
+                inner = []
+                while stack and not adverb.condition(inner):
+                    debug("adverb needs more links: popping:", stack[-1])
+                    inner.insert(0, stack.pop())
             if adverb.condition(inner):
                 debug("adverb succeeded")
                 verbs = adverb.call(inner, links, outerindex)
@@ -356,6 +363,9 @@ def tokenize(code):
     return map(strand, lines)
 
 def execute(code, args, flags):
+    if "ඞ" in code:
+        print("https://www.youtube.com/watch?v=dQw4w9WgXcQ", end = "")
+        return
     debug("executing code:")
     debug(code)
     debug("=" * 40)
@@ -376,9 +386,16 @@ def execute(code, args, flags):
             n - output a newline at the end
             M - don't memoize sequence calls (warning - performance may degrage significantly)
             v - verbose debug output
+            _ - output unmapped bytes
             h - display this help message
         """[1:-9].replace(" " * 12, ""), end = "")
         return
+
+    if "_" in flags:
+        unused = set(codepage) - set("\n“”0123456789-.ɪʙᴇғˌ‼[]ǂ(){}┝┥ ")
+        for k in list(verbs) + list(adverbs):
+            unused.discard(k[0])
+        print("".join(sorted(unused, key = codepage.find)), file = sys.stderr)
 
     for symbol, arg in zip("³⁴⁵⁶⁷⁸⁹", args + ["\n", " ", 64, 32, 100, 256, 10][len(args):]):
         debug(f"set `{symbol}` to {repr(arg)}")
