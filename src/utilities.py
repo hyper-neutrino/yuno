@@ -240,42 +240,34 @@ class join_sequence(sequence):
             return self.forward[index]
 
 class repeater_sequence(sequence):
-    def __init__(self, seq, repeat):
+    def __init__(self, x, y):
         sequence.__init__(self, self.func)
-        self.seq = seq
-        self.repeat = repeat
+        self.x = x
+        self.y = y
         self.forward = []
         self.backward = []
         self.f_index = 0
         self.b_index = -1
-        self.f_progress = repeat
-        self.b_progress = repeat
+        self.f_progress = self.y[self.f_index]
+        self.b_progress = self.y[self.b_index]
     def func(self, index):
         if index < 0:
             while len(self.backward) < -index:
-                if isinstance(self.seq[self.b_index], (list, sequence)):
-                    self.backward.append(inplace_repeat(self.seq[self.b_index], self.repeat))
-                    self.b_index -= 1
+                if self.b_progress > 0:
+                    self.b_progress -= 1
+                    self.backward.append(self.x[self.b_index])
                 else:
-                    if self.b_progress:
-                        self.b_progress -= 1
-                        self.backward.append(self.seq[self.b_index])
-                    else:
-                        self.b_progress = self.repeat
-                        self.b_index -= 1
+                    self.b_index -= 1
+                    self.b_progress = self.y[self.b_index]
             return self.backward[~index]
         else:
             while len(self.forward) <= index:
-                if isinstance(self.seq[self.f_index], (list, sequence)):
-                    self.forward.append(inplace_repeat(self.seq[self.f_index], self.repeat))
-                    self.f_index += 1
+                if self.f_progress > 0:
+                    self.f_progress -= 1
+                    self.forward.append(self.x[self.f_index])
                 else:
-                    if self.f_progress:
-                        self.f_progress -= 1
-                        self.forward.append(self.seq[self.f_index])
-                    else:
-                        self.f_progress = self.repeat
-                        self.f_index += 1
+                    self.f_index += 1
+                    self.f_progress = self.y[self.f_index]
             return self.forward[index]
 
 def yunoify(value, deep = True):

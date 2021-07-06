@@ -569,17 +569,14 @@ def sublist_mapping(x, y):
     else:
         raise RuntimeError("sublist filter/mapping for infinite sequences is annoying. if you really need this, go bug hyper-neutrino to implement it; I'm too lazy")
 
-@Verb("x", arity = 2, rdepth = 0)
+@Verb("x", arity = 2, ldepth = 1, rdepth = 1)
 def inplace_repeat(x, y):
-    x = make_iterable(x, make_range = True)
-    y = int(reim(y)[0])
-    if isinstance(x, list):
+    x = make_iterable(x, singleton = True)
+    y = map(lambda k: int(reim(k)[0]), make_iterable(y, singleton = True))
+    if isinstance(x, list) or isinstance(y, list):
         output = []
-        for k in x:
-            if isinstance(k, (list, sequence)):
-                output.append(inplace_repeat(k, y))
-            else:
-                output.extend([k] * y)
+        for i, j in zip(x, y):
+            output.extend([i] * j)
         return output
     else:
         return repeater_sequence(x, y)

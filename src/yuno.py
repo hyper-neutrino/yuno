@@ -19,6 +19,8 @@ def evaluate(chain, arity, *args):
         chain = chain[:]
         value = None
 
+        stack = []
+
         if arity == 0:
             if chain and chain[0].arity == 0:
                 x = chain.pop(0).call()
@@ -37,6 +39,9 @@ def evaluate(chain, arity, *args):
             while chain:
                 if isinstance(value, trampoline):
                     value = value.eval()
+                if chain[0].arity == 2 and stack:
+                    value = chain.pop(0).call(value, stack.pop())
+                    continue
                 if len(chain) >= 2:
                     if chain[0].arity == 2 and chain[1].arity == 1:
                         value = chain.pop(0).call(value, ut(chain.pop(0).call)(x))
@@ -53,13 +58,14 @@ def evaluate(chain, arity, *args):
                 if chain[0].arity == 1:
                     value = chain.pop(0).call(value)
                     continue
-                yuno_output(value)
+                stack.append(value)
                 value = chain.pop(0).call()
 
             if isinstance(value, trampoline):
                 chain = value.link
                 arity = len(value.arguments)
                 args = value.arguments
+                stack = []
                 continue
             else:
                 return value
@@ -77,6 +83,9 @@ def evaluate(chain, arity, *args):
             while chain:
                 if isinstance(value, trampoline):
                     value = value.eval()
+                if chain[0].arity == 0 and stack:
+                    value = chain.pop(0).call(value, stack.pop())
+                    continue
                 if len(chain) >= 3 and chain[0].arity == chain[1].arity == 2 and isLCC(chain[2:]):
                     value = chain.pop(1).call(ut(chain.pop(0).call)(value, y), ut(chain.pop(1).call)())
                     continue
@@ -96,13 +105,14 @@ def evaluate(chain, arity, *args):
                 if chain[0].arity == 1:
                     value = chain.pop(0).call(value)
                     continue
-                yuno_output(value)
+                stack.append(value)
                 value = chain.pop(0).call()
 
             if isinstance(value, trampoline):
                 chain = value.link
                 arity = len(value.arguments)
                 args = value.arguments
+                stack = []
                 continue
             else:
                 return value
