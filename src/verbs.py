@@ -149,6 +149,12 @@ def to_binary(x):
         raise RuntimeError("`B` not implemented on str")
     return to_base(x, sympy.Integer(2))
 
+@Verb("ɮ", arity = 1, ldepth = 1)
+def from_binary(x):
+    if any(isinstance(k, str) for k in x):
+        raise RuntimeError("`ɮ` not implemented on str")
+    return from_base(x, sympy.Integer(2))
+
 @Verb("C", arity = 1, ldepth = 0)
 def complement(x):
     if isinstance(x, str):
@@ -171,6 +177,22 @@ def flatten(x):
     if not isinstance(x, (list, sequence)):
         return [x]
     return reduce(concatenate, map(flatten, x), []) if isinstance(x, list) else flat_sequence(x)
+
+@Verb("G", arity = 1)
+def group_indices(x):
+    x = make_iterable(x, singleton = True)
+    if isinstance(x, list):
+        groups = []
+        groupkeys = []
+        for i, k in enumerate(x):
+            if k in groupkeys:
+                groups[groupkeys.index(k)].append(i)
+            else:
+                groupkeys.append(k)
+                groups.append([i])
+        return groups
+    else:
+        raise RuntimeError("`G` not implemented on sequence")
 
 @Verb("H", arity = 1, ldepth = 0, lstr_obj = True)
 def halve(x):
