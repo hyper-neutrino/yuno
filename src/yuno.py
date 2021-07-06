@@ -28,8 +28,9 @@ def evaluate(chain, arity, *args):
 
         if arity == 1:
             if isLCC(chain):
-                x = ut(x)
-                value = chain.pop(0).call()
+                if isinstance(x, trampoline):
+                    x = x.eval()
+                value = ut(chain.pop(0).call)()
             else:
                 value = x
 

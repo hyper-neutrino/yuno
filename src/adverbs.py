@@ -24,6 +24,21 @@ def vectorize_once(link):
     else:
         return attrdict(arity = 2, call = lambda x, y: (vjoin(ut(link.call), x, y) if isinstance(y, (list, sequence)) else map(lambda a: ut(link.call)(a, y), x)) if isinstance(x, (list, sequence)) else (map(lambda a: ut(link.call)(x, a), y) if isinstance(y, (list, sequence)) else link.call(x, y)))
 
+@Hyper("⁺")
+def duplicate_link(link):
+    return [link, link]
+
+@Adverb("¡", lambda x: x and (len(x) == 2 or x[0].arity))
+def ntimes(inner, links, outerindex):
+    rep = int(reim(ut(inner[-1].call)() if len(inner) == 2 else last_input())[0])
+    link = inner[0]
+    if link.arity == 0:
+        return attrdict(arity = 0, call = lambda: [(ut(link.call) if x < rep - 1 else link.call)() for x in range(rep)][-1])
+    elif link.arity == 1:
+        return attrdict(arity = 1, call = lambda x: Y(lambda f: lambda v, r: v if r == 0 else (ut(link.call) if r < rep else link.call)(f(f)(v, r - 1)))(x, rep))
+    else:
+        return attrdict(arity = 2, call = lambda x, y: Y(lambda f: lambda v, p, r: v if r == 0 else f(f)(ut(link.call)(v, p), v, r - 1))(x, y, rep))
+
 @Adverb("?", lambda x: len(x) == 3, fail = lambda inner, links, outerindex: conditional(inner, links, outerindex))
 def conditional(inner, links, outerindex):
     if len(inner) == 0:

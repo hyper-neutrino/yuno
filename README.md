@@ -109,3 +109,7 @@ Also, again, if an unmatched nilad is encountered, output the current value, set
 - monad: convert between degree types
 - monad: join on newlines
 - monad: join on spaces
+- dyads: partition: at truthy, at indices, etc
+- dyads: trim
+- monad/dyad/triad (quick): eval
+- padding commands

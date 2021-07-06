@@ -36,11 +36,17 @@ class trampoline:
         return "[trampoline - %s]" % " - ".join([str(self.link), *map(str, self.arguments)])
 
 class sequence:
-    def __init__(self, func, depth = 1):
+    def __init__(self, func, depth = 1, contains = None):
         self.func = func
         self.cache = {}
         self.depth = depth
         self.iterpos = 0
+        self.contains = contains
+    def __contains__(self, x):
+        if self.contains:
+            return self.contains(x)
+        else:
+            raise RuntimeError("this sequence does not have occurrence checking implemented")
     def __getitem__(self, key):
         if isinstance(key, slice):
             start = key.start
@@ -109,6 +115,8 @@ class transform_sequence(sequence):
         self.backward = []
         self.fscan = 0
         self.bscan = -1
+    def __contains__(self, x):
+        return isinstance(x, list) and len(x) == 2 and [x[1], x[0]] in self.seq
     def func(self, index):
         if index < 0:
             while len(self.backward) < -index:
@@ -179,6 +187,96 @@ class cumulative_reduce_sequence(sequence):
                 self.found.append(self.f(self.found[-1], self.seq[self.fscan]))
                 self.fscan += 1
             return self.found[index]
+
+class join_sequence(sequence):
+    def __init__(self, values, glue):
+        sequence.__init__(self, self.func)
+        self.values = map(lambda x: make_iterable(x, singleton = True), values)
+        self.glue = glue
+        self.forward = []
+        self.backward = []
+        self.f_gluing = False
+        self.b_gluing = True
+        self.fvi = 0
+        self.bvi = 0
+        self.fii = 0
+        self.bii = -1
+    def func(self, index):
+        if index < 0:
+            while len(self.backward) < -index:
+                if self.b_gluing:
+                    if isinstance(self.glue, list) and -self.bii > len(self.glue):
+                        self.b_gluing = False
+                        self.bvi -= 1
+                        self.bii = -1
+                    else:
+                        self.backward.append(self.glue[self.bii])
+                        self.bii -= 1
+                else:
+                    if isinstance(self.values[self.bvi], list) and -self.bii > len(self.values[self.bvi]):
+                        self.b_gluing = True
+                        self.vii = -1
+                    else:
+                        self.backward.append(self.values[self.bvi][self.bii])
+                        self.bii -= 1
+            return self.backward[~index]
+        else:
+            while len(self.forward) <= index:
+                if self.f_gluing:
+                    if isinstance(self.glue, list) and self.fii >= len(self.glue):
+                        self.f_gluing = False
+                        self.fvi += 1
+                        self.fii = 0
+                    else:
+                        self.forward.append(self.glue[self.fii])
+                        self.fii += 1
+                else:
+                    if isinstance(self.values[self.bvi], list) and self.fii >= len(self.values[self.bvi]):
+                        self.f_gluing = True
+                        self.fii = 0
+                    else:
+                        self.forward.append(self.values[self.fvi][self.fii])
+                        self.fii += 1
+            return self.forward[index]
+
+class repeater_sequence(sequence):
+    def __init__(self, seq, repeat):
+        sequence.__init__(self, self.func)
+        self.seq = seq
+        self.repeat = repeat
+        self.forward = []
+        self.backward = []
+        self.f_index = 0
+        self.b_index = -1
+        self.f_progress = repeat
+        self.b_progress = repeat
+    def func(self, index):
+        if index < 0:
+            while len(self.backward) < -index:
+                if isinstance(self.seq[self.b_index], (list, sequence)):
+                    self.backward.append(inplace_repeat(self.seq[self.b_index], self.repeat))
+                    self.b_index -= 1
+                else:
+                    if self.b_progress:
+                        self.b_progress -= 1
+                        self.backward.append(self.seq[self.b_index])
+                    else:
+                        self.b_progress = self.repeat
+                        self.b_index -= 1
+            return self.backward[~index]
+        else:
+            while len(self.forward) <= index:
+                if isinstance(self.seq[self.f_index], (list, sequence)):
+                    self.forward.append(inplace_repeat(self.seq[self.f_index], self.repeat))
+                    self.f_index += 1
+                else:
+                    if self.f_progress:
+                        self.f_progress -= 1
+                        self.forward.append(self.seq[self.f_index])
+                    else:
+                        self.f_progress = self.repeat
+                        self.f_index += 1
+            return self.forward[index]
 
 def yunoify(value, deep = True):
     if not isinstance(value, list) and not deep or isinstance(value, sympy.Basic):
@@ -428,3 +526,9 @@ def const(x):
 
 def Y(f):
     return f(f)
+
+def last_input():
+    if args:
+        return args[-1]
+    else:
+        return tryeval(input())

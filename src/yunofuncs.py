@@ -211,3 +211,12 @@ def suffixes(x):
         return [x[i:] for i in range(len(x) - 1)]
     else:
         raise RuntimeError("cannot take suffixes of an infinite sequence")
+
+def cantor_unpair(z):
+    if z < 0:
+        return [-k for k in cantor_unpair(-z)]
+    w = int((math.sqrt(8 * z + 1) - 1) / 2)
+    t = (w ** 2 + w) // 2
+    y = z - t
+    x = w - y
+    return [x, y]

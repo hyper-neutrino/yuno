@@ -336,10 +336,8 @@ def count_occurrences(x, y):
 
 @Verb("ɔ", arity = 2)
 def advanced_count(x, y, k = 1):
-    if isinstance(x, list):
+    if isinstance(x, (list, sequence)):
         return x.count(y) + max(advanced_count(k, y, 0) for k in x)
-    elif isinstance(x, sequence):
-        raise RuntimeError("cannot count occurrences in an infinite sequence")
     else:
         return k
 
@@ -350,10 +348,32 @@ def div_mod(x, y):
 @Verb("e", arity = 2)
 def occurs_in(x, y):
     y = make_iterable(y, singleton = True)
-    if isinstance(y, list):
-        return b2i(x in y)
+    return b2i(x in y)
+
+@Verb("f", arity = 2)
+def filter_positive(x, y):
+    x = make_iterable(x, singleton = True)
+    y = make_iterable(y, singleton = True)
+    return filter(lambda k: k in y, x)
+
+@Verb("ɟ", arity = 2)
+def filter_negative(x, y):
+    x = make_iterable(x, singleton = True)
+    y = make_iterable(y, singleton = True)
+    return filter(lambda k: k not in y, x)
+
+@Verb("g", arity = 2, ldepth = 0, rdepth = 0)
+def gcd_dyad(x, y):
+    if isinstance(x, str):
+        if isinstance(y, str):
+            raise RuntimeError("`g` not implemented on chr, chr")
+        else:
+            raise RuntimeError("`g` not implemented on chr, num")
     else:
-        raise RuntimeError("cannot check occurrences in an infinite sequence")
+        if isinstance(y, str):
+            raise RuntimeError("`g` not implemented num, chr")
+        else:
+            return sympy.gcd(x, y)
 
 @Verb("i", arity = 2)
 def index_of(x, y):
@@ -361,6 +381,67 @@ def index_of(x, y):
         if element == y:
             return index
     return oneindex - 1
+
+@Verb("j", arity = 2)
+def join(x, y):
+    x = make_iterable(x, singleton = True)
+    y = make_iterable(y, singleton = True)
+    if isinstance(x, list):
+        if isinstance(y, list):
+            output = make_iterable(x[0], singleton = True)
+            for k in x[1:]:
+                output.extend(y)
+                output.extend(make_iterable(k, singleton = True))
+            return output
+        else:
+            return verbs[";"].call(x[0], y)
+    else:
+        return join_sequence(x, y)
+
+@Verb("l", arity = 2, ldepth = 0, rdepth = 0)
+def lcm_dyad(x, y):
+    if isinstance(x, str):
+        if isinstance(y, str):
+            raise RuntimeError("`l` not implemented on chr, chr")
+        else:
+            raise RuntimeError("`l` not implemented on chr, num")
+    else:
+        if isinstance(y, str):
+            raise RuntimeError("`l` not implemented num, chr")
+        else:
+            return sympy.lcm(x, y)
+
+@Verb("m", arity = 2, rdepth = 0)
+def modular(x, y):
+    x = make_iterable(x, singleton = True)
+    if isinstance(y, str):
+        raise RuntimeError("`m` not implemented on any, chr")
+    else:
+        y = int(reim(y)[0])
+        return x[::y]
+
+@Verb("n", arity = 2, ldepth = 0, rdepth = 0)
+def is_unequal(x, y):
+    return b2i(x != y)
+
+@Verb("o", arity = 2, ldepth = 0, rdepth = 0)
+def logical_or(x, y):
+    return x or y
+
+@Verb("p", arity = 2)
+def cproduct_dyad(x, y):
+    x = make_iterable(x, make_range = True)
+    y = make_iterable(y, make_range = True)
+    if isinstance(x, list):
+        if isinstance(y, list):
+            return [[a, b] for a in x for b in y]
+        else:
+            return sequence(lambda i: [x[i % len(x)], y[i // len(x)]])
+    else:
+        if isinstance(y, list):
+            return sequence(lambda i: [x[i // len(y)], y[i % len(y)]])
+        else:
+            return sequence(lambda i: (lambda a, b: [x[a], y[b]])(*cantor_unpair(i)))
 
 @Verb("r", arity = 2, ldepth = 0, rdepth = 0)
 def inclusive_range(x, y):
@@ -374,6 +455,132 @@ def inclusive_range(x, y):
             raise RuntimeError("`r` not implemented on num, chr")
         else:
             return arbitrary_range(x, y, False, False)
+
+@Verb("s", arity = 2, rdepth = 0)
+def slice_into_length(x, y):
+    x = make_iterable(x, make_range = True)
+    y = int(reim(y)[0])
+    if isinstance(y, str):
+        raise RuntimeError("`s` not implemented on any, chr")
+    else:
+        if isinstance(x, list):
+            if y > 0:
+                return [x[i:i + y] for i in range(0, len(x), y)]
+            elif y < 0:
+                return [x[:i] + x[i - y:] for i in range(0, len(x), -y)]
+            else:
+                raise RuntimeError("cannot slice list into blocks of length 0")
+        else:
+            if y > 0:
+                return sequence(lambda i: x[i * y:i * y + y])
+            elif y < 0:
+                return sequence(lambda i: sequence(lambda j: x[j] if j < i * -y else j - y + 1))
+            else:
+                raise RuntimeError("cannot slice infinite sequence into blocks of length 0")
+
+@Verb("u", arity = 2)
+def jelly_mapping(x, y):
+    x = make_iterable(x, singleton = True)
+    y = make_iterable(y, singleton = True)
+    if isinstance(x, sequence) or any(isinstance(k, sequence) for k in x[::2]):
+        raise RuntimeError("cannot use a sequence as the source in a mapping")
+    filter_out = []
+    mapsrc = []
+    mapdes = []
+    nms = []
+    nmd = []
+    if len(x) % 2:
+        filter_out = make_iterable(x[-1], singleton = True)
+    for i in range(len(x) // 2):
+        i *= 2
+        src = make_iterable(x[i], singleton = True)
+        des = make_iterable(x[i + 1], singleton = True)
+        if isinstance(des, sequence):
+            des = [des]
+        if len(des) == 0:
+            raise RuntimeError("cannot map into a blank destination")
+        for a, b in zip(src, des + [des[-1]] * (len(src) - len(des))):
+            if a in mapdes:
+                mapdes[mapdes.index(a)] = b
+            nms.append(a)
+            nmd.append(b)
+        mapsrc += nms
+        mapdes += nmd
+    if isinstance(y, list):
+        return [mapdes[mapsrc.index(k)] if k in mapsrc else k for k in y]
+    else:
+        if filter_out:
+            return map(lambda k: mapdes[mapsrc.index(k)] if k in mapsrc else k, filter(lambda k: k not in filter_out, y))
+
+@Verb("v", arity = 2)
+def sublist_mapping(x, y):
+    x = make_iterable(x, singleton = True)
+    y = make_iterable(y, singleton = True)
+    if isinstance(x, sequence) or any(isinstance(k, sequence) for k in x[::2]):
+        raise RuntimeError("cannot use a sequence as the source in a mapping")
+    filter_out = []
+    mapsrc = []
+    mapdes = []
+    if len(x) % 2:
+        filter_out = make_iterable(x[-1], singleton = True)
+    for i in range(len(x) // 2):
+        i *= 2
+        mapsrc.append(make_iterable(x[i], singleton = True))
+        mapdes.append(make_iterable(x[i + 1], singleton = True))
+    if isinstance(y, list):
+        output = []
+        while y:
+            if filter_out and y[:len(filter_out)] == filter_out:
+                y = y[:len(filter_out)]
+            else:
+                for i in range(len(mapsrc)):
+                    k = mapsrc[i]
+                    if y[:len(k)] == k:
+                        output = verbs[";"].call(output, mapdes[i])
+                        y = y[len(k):]
+                        break
+                else:
+                    output.append(y.pop(0))
+            if isinstance(output, sequence):
+                break
+        return output
+    else:
+        raise RuntimeError("sublist filter/mapping for infinite sequences is annoying. if you really need this, go bug hyper-neutrino to implement it; I'm too lazy")
+
+@Verb("x", arity = 2, rdepth = 0)
+def inplace_repeat(x, y):
+    x = make_iterable(x, make_range = True)
+    y = int(reim(y)[0])
+    if isinstance(x, list):
+        output = []
+        for k in x:
+            if isinstance(k, (list, sequence)):
+                output.append(inplace_repeat(k, y))
+            else:
+                output.extend([k] * y)
+        return output
+    else:
+        return repeater_sequence(x, y)
+
+@Verb("z", arity = 2)
+def zip_with_filler(x, y):
+    x = map(lambda k: make_iterable(k, singleton = True), make_iterable(x, singleton = True))
+    if isinstance(x, list):
+        if all(isinstance(k, list) for k in x):
+            ml = max(map(len, x))
+            x = [k + [y] * (ml - len(k)) for k in x]
+            return transform(x)
+        else:
+            x = [(lambda a = a: sequence(lambda i: a[i] if isinstance(a, sequence) or 0 <= i < len(a) else y))() for a in x]
+            return transform(x)
+
+@Verb("⁼", arity = 2)
+def equal_flat(x, y):
+    return b2i(x == y)
+
+@Verb("⁻", arity = 2)
+def unequal_flat(x, y):
+    return b2i(x != y)
 
 @Verb("ɐ", arity = 2)
 def sublist_index(x, y):
