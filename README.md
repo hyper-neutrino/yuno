@@ -32,7 +32,7 @@ List literals are parsed via stranding - that is, placing multiple literals one 
 
 If a verb or adverb is identified, add it as a token.
 
-If any of `(){}┝┥` are seen, keep them around as brackets - we'll get to that later.
+If any of `(){}┝┥ʃʄ` are seen, keep them around as brackets - we'll get to that later.
 
 Otherwise, if nothing is recognized (this includes spaces), discard one character and continue trying. This should not error but should break the current token. Also, newlines should split links. Tokenizing should return a list of lines, each line being a list of tokens.
 
@@ -42,7 +42,7 @@ Literals should be parsed into niladic verbs at this point. Everything other tha
 
 Parsing can be done via maintaining a stack. When you encounter a verb, push it to the stack. When you encounter an adverb, keep popping from the stack until the condition for the adverb is met.
 
-If you encounter a closing bracket, take the whole stack, load it into a subroutine, and push just one item to the stack. The arity depends on the bracket: `┥` is niladic, `)` is monadic, and `}` is dyadic.
+If you encounter a closing bracket, take the whole stack, load it into a subroutine, and push just one item to the stack. The arity depends on the bracket: `┥` is niladic, `)` is monadic, `}` is dyadic, and `ʄ` is dyadic but with the arguments reversed.
 
 If you encounter an opening bracket, find the matching closing bracket (ignoring other bracket types when scanning for bracket balancing), parse the items between the brackets, and push just one item to the stack. The same arity rules as above apply.
 

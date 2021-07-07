@@ -8,7 +8,9 @@ assert len(set(codepage)) == 256, f"codepage has {len(set(codepage))} characters
 def isLCC(chain):
     return chain and [link.arity for link in chain] + [1] < [0, 2] * len(chain)
 
-def evaluate(chain, arity, *args):
+def evaluate(chain, arity, *args, reverse_args = False):
+    if reverse_args:
+        args = args[::-1]
     while True:
         verbs["α"].call = (lambda x: lambda: x)(list("yuno by hyper-neutrino") if arity < 1 else args[0])
         verbs["ω"].call = (lambda x: lambda: x)([] if arity < 2 else args[1])
@@ -154,7 +156,8 @@ def parse_chain(chain, chains, links, outerindex, stack = None):
                 debug("adverb failed")
                 verbs = adverb.fail(inner, links, outerindex)
             else:
-                raise RuntimeError(f"adverb `{chain[index].name}` failed to meet its condition and does not have a default behavior")
+                print(f"adverb `{chain[index].name}` failed to meet its condition and does not have a default behavior", file = sys.stderr)
+                verbs = []
             if not isinstance(verbs, list):
                 verbs = [verbs]
             debug("adverb pushing links:")
@@ -165,6 +168,7 @@ def parse_chain(chain, chains, links, outerindex, stack = None):
             if chain[index].open:
                 debug("open bracket encountered:")
                 arity = chain[index].arity
+                reversed = chain[index].reversed
                 index += 1
                 bal = 1
                 inner = []
@@ -177,14 +181,15 @@ def parse_chain(chain, chains, links, outerindex, stack = None):
                         index += 1
                     else:
                         debug("- balanced; exiting")
-                stack.append(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args))(parse_chain(inner, chains, links, outerindex, []), arity)))
+                stack.append(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args, reverse_args = reversed))(parse_chain(inner, chains, links, outerindex, []), arity)))
             else:
                 debug("close bracket encountered")
                 subchain = stack[:]
                 stack[:] = []
                 arity = chain[index].arity
+                reversed = chain[index].reversed
                 debug("- feeding subchain:", subchain)
-                stack.append(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args))(parse_chain(subchain, chains, links, outerindex, []), arity)))
+                stack.append(attrdict(arity = arity, call = (lambda chain, arity: lambda *args: evaluate(chain, arity, *args, reverse_args = reversed))(parse_chain(subchain, chains, links, outerindex, []), arity)))
         elif chain[index].type == "breaker":
             pass
         else:
@@ -288,6 +293,8 @@ def tokenize(code):
         if code[index] == "\n":
             debug("tk: new link")
             lines.append([])
+        elif code[index] == " ":
+            pass
         elif code[index] in "“”0123456789-.ɪʙᴇғˌ‼[]":
             debug("tk: literal")
             if code[index] == "“":
@@ -353,11 +360,12 @@ def tokenize(code):
         elif code[index] == "ǂ":
             debug("tk: breaker")
             lines[-1].append(attrdict(type = "breaker"))
-        elif code[index] in "(){}┝┥":
-            arity = "┝({┥)}".find(code[index]) % 3
-            open = code[index] in "({┝"
-            debug(f"tk: subfunction group: arity = {arity}: open = {open}")
-            lines[-1].append(attrdict(type = "bracket", open = open, arity = arity))
+        elif code[index] in "(){}┝┥ʃʄ":
+            arity = min("┝({ʃ┥)}ʄ".find(code[index]) % 4, 2)
+            open = code[index] in "({┝ʃ"
+            reversed = code[index] == "ʃ"
+            debug(f"tk: subfunction group: arity = {arity}: open = {open}: reversed = {reversed}")
+            lines[-1].append(attrdict(type = "bracket", open = open, arity = arity, reversed = reversed))
         else:
             for type, item in [["verb", verbs], ["adverb", adverbs]]:
                 for key in item:
@@ -403,7 +411,7 @@ def execute(code, args, flags):
         return
 
     if "_" in flags:
-        unused = set(codepage) - set("\n“”0123456789-.ɪʙᴇғˌ‼[]ǂ(){}┝┥ ")
+        unused = set(codepage) - set("\n“”0123456789-.ɪʙᴇғˌ‼[]ǂ(){}┝┥ʃʄ ")
         for k in list(verbs) + list(adverbs):
             unused.discard(k[0])
         print("".join(sorted(unused, key = codepage.find)), file = sys.stderr)

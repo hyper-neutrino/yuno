@@ -601,6 +601,19 @@ def equal_flat(x, y):
 def unequal_flat(x, y):
     return b2i(x != y)
 
+@Verb("ä", arity = 2, ldepth = 0, rdepth = 0)
+def absolute_difference(x, y):
+    if isinstance(x, str):
+        if isinstance(y, str):
+            raise RuntimeError("`ä` not implemented on chr, chr")
+        else:
+            raise RuntimeError("`ä` not implemented on chr, num")
+    else:
+        if isinstance(y, str):
+            raise RuntimeError("`ä` not implemented on num, chr")
+        else:
+            return abs(x - y)
+
 @Verb("ɐ", arity = 2)
 def sublist_index(x, y):
     x = make_iterable(x, make_range = True)
@@ -896,7 +909,7 @@ def depth(x):
     else:
         return 0
 
-@Verb("ᴘ", arity = 1)
+@Verb("Π", arity = 1)
 def yproduct(x):
     return reduce(verbs["×"].call, make_iterable(x, singleton = True), default = 1)
 
